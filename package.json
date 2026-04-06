@@ -1,5 +1,5 @@
 {
-  "name": "@ai-agents/sdlc",
+  "name": "@krukovden/sdlc",
   "version": "1.0.1",
   "description": "AI-powered SDLC system with 5 specialized agents. Walks through clarify, research, design, plan, implement with approval gates. Works with Claude Code, GitHub Copilot, and OpenAI Codex.",
   "bin": {
@@ -18,5 +18,8 @@
     "README.md"
   ],
   "keywords": ["sdlc", "ai", "agents", "claude", "copilot", "codex"],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "license": "MIT"
 }

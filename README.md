@@ -30,7 +30,7 @@ You approve after each phase. Tasks run continuously without stopping between th
 ## Quick Start
 
 ```bash
-npm i @ai-agents/sdlc
+npm i @krukovden/sdlc
 npx sdlc
 
 # Setup asks which tool you use (Claude Code / Copilot / Codex / All)
@@ -133,7 +133,7 @@ The system works from any AI coding tool. `.agents/` is the single source of tru
              Claude Code   Copilot     Codex
 ```
 
-Run `npm i @ai-agents/sdlc && npx sdlc` once per project — it generates the right config for your tool.
+Run `npm i @krukovden/sdlc && npx sdlc` once per project — it generates the right config for your tool.
 
 ---
 
@@ -177,7 +177,7 @@ Skills are domain knowledge that agents load on demand:
 
 | Command | What it does |
 |---------|-------------|
-| `npm i @ai-agents/sdlc` | Install the package |
+| `npm i @krukovden/sdlc` | Install the package |
 | `npx sdlc` | Interactive setup — asks which tool, generates config |
 | `npx sdlc claude` | Generate Claude Code config only (also: `copilot`, `codex`, `all`) |
 
@@ -227,7 +227,7 @@ Run one phase at a time when you want more control:
 
 ```bash
 # First time setup
-npm i @ai-agents/sdlc && npx sdlc
+npm i @krukovden/sdlc && npx sdlc
 
 # Start a feature
 /sdlc feature "add email notifications for order updates"
