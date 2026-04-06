@@ -17,7 +17,14 @@
     "AGENTS.md",
     "README.md"
   ],
-  "keywords": ["sdlc", "ai", "agents", "claude", "copilot", "codex"],
+  "keywords": [
+    "sdlc",
+    "ai",
+    "agents",
+    "claude",
+    "copilot",
+    "codex"
+  ],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
