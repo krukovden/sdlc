@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SDLC Multi-Agent System — Architecture</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242836;
+    --border: #2e3347;
+    --text: #e4e6f0;
+    --muted: #8b8fa3;
+    --accent: #6c8aff;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --orange: #fb923c;
+    --red: #f87171;
+    --purple: #a78bfa;
+    --cyan: #22d3ee;
+    --pink: #f472b6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font: 14px/1.6 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 24px; }
+  h1 { font-size: 28px; margin-bottom: 4px; }
+  h2 { font-size: 20px; margin: 32px 0 16px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  h3 { font-size: 16px; margin: 20px 0 10px; color: var(--cyan); }
+  .subtitle { color: var(--muted); margin-bottom: 24px; font-size: 15px; }
+  .grid { display: grid; gap: 16px; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .card-header { font-weight: 600; font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; }
+  .badge-source { background: #1a3a2a; color: var(--green); }
+  .badge-generated { background: #2a2a1a; color: var(--yellow); }
+  .badge-memory { background: #2a1a2a; color: var(--pink); }
+  .badge-agent { background: #1a1a3a; color: var(--purple); }
+  ul { padding-left: 18px; margin: 4px 0; }
+  li { margin: 2px 0; color: var(--muted); font-size: 13px; }
+  li strong { color: var(--text); }
+
+  /* Architecture Diagram */
+  .arch-diagram { text-align: center; padding: 24px; }
+  .arch-row { display: flex; justify-content: center; gap: 16px; margin: 8px 0; flex-wrap: wrap; }
+  .arch-box { background: var(--surface2); border: 2px solid var(--border); border-radius: 8px; padding: 12px 20px; min-width: 140px; text-align: center; position: relative; }
+  .arch-box.source { border-color: var(--green); }
+  .arch-box.adapter { border-color: var(--yellow); }
+  .arch-box.memory { border-color: var(--pink); }
+  .arch-box .label { font-weight: 700; font-size: 14px; }
+  .arch-box .desc { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .arch-arrow { color: var(--muted); font-size: 24px; margin: 4px 0; }
+  .arch-arrow-h { color: var(--muted); font-size: 20px; margin: 0 4px; display: flex; align-items: center; }
+
+  /* Workflow Diagram */
+  .workflow { display: flex; flex-direction: column; gap: 0; padding: 16px 0; }
+  .phase { display: flex; align-items: stretch; gap: 0; }
+  .phase-num { width: 40px; display: flex; flex-direction: column; align-items: center; }
+  .phase-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: white; flex-shrink: 0; }
+  .phase-line { width: 2px; flex: 1; margin: 0 auto; }
+  .phase-content { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; }
+  .phase-title { font-weight: 600; font-size: 14px; }
+  .phase-detail { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .phase-gate { font-size: 11px; color: var(--yellow); margin-top: 4px; font-weight: 600; }
+
+  /* Agent Pipeline */
+  .pipeline { display: flex; align-items: center; gap: 0; padding: 16px 0; overflow-x: auto; justify-content: center; flex-wrap: wrap; }
+  .agent-box { background: var(--surface); border: 2px solid var(--border); border-radius: 10px; padding: 14px 18px; min-width: 130px; text-align: center; }
+  .agent-box .name { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .agent-box .reads { font-size: 11px; color: var(--muted); text-align: left; }
+  .agent-box .reads li { margin: 1px 0; }
+  .agent-box.lead { border-color: var(--accent); }
+  .agent-box.coder { border-color: var(--green); }
+  .agent-box.tester { border-color: var(--cyan); }
+  .agent-box.reviewer { border-color: var(--purple); }
+  .agent-box.security { border-color: var(--red); }
+  .arrow { color: var(--muted); font-size: 22px; padding: 0 6px; flex-shrink: 0; }
+
+  /* Platform Table */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
+  th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 11px; }
+  td.yes { color: var(--green); font-weight: 600; }
+  td.no { color: var(--muted); }
+  td.sym { color: var(--yellow); }
+
+  /* Workflow Types */
+  .type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .type-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .type-card .type-name { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+  .type-card .phases { font-size: 12px; color: var(--muted); }
+  .type-card .phases .active { color: var(--green); }
+  .type-card .phases .inactive { color: var(--border); text-decoration: line-through; }
+
+  @media (max-width: 900px) {
+    .grid-3 { grid-template-columns: 1fr; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .type-grid { grid-template-columns: repeat(2, 1fr); }
+    .pipeline { flex-direction: column; }
+    .arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<h1>SDLC Multi-Agent System</h1>
+<p class="subtitle">Cross-platform workflow system for Claude Code, GitHub Copilot, and OpenAI Codex</p>
+
+<!-- ==================== WHAT IS SDLC ==================== -->
+<h2>0. What Is SDLC?</h2>
+
+<div class="card" style="margin-bottom:16px;">
+  <p><strong>SDLC (Software Development Life Cycle)</strong> is a structured process for building software through defined phases — from understanding what to build, through designing and planning, to writing code and verifying quality.</p>
+  <p style="margin-top:8px; color:var(--muted);">Traditional SDLC involves humans in each role. This system replaces those roles with <strong>AI agents</strong>, each specialized for one job, while keeping a human in the loop at every phase gate.</p>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-header">Traditional SDLC</div>
+    <ul>
+      <li><strong>Analyst</strong> — gathers requirements</li>
+      <li><strong>Architect</strong> — designs the system</li>
+      <li><strong>Project Manager</strong> — breaks into tasks</li>
+      <li><strong>Developer</strong> — writes code</li>
+      <li><strong>QA Engineer</strong> — writes and runs tests</li>
+      <li><strong>Code Reviewer</strong> — reviews quality</li>
+      <li><strong>Security Engineer</strong> — audits vulnerabilities</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-header">This System (AI Agents)</div>
+    <ul>
+      <li><strong style="color:var(--accent);">Lead agent</strong> — clarify, research, design, plan</li>
+      <li><strong style="color:var(--accent);">Lead agent</strong> — architecture decisions</li>
+      <li><strong style="color:var(--accent);">Lead agent</strong> — task breakdown + dispatch</li>
+      <li><strong style="color:var(--green);">Coder agent</strong> — writes implementation code</li>
+      <li><strong style="color:var(--cyan);">Tester agent</strong> — writes and runs tests</li>
+      <li><strong style="color:var(--purple);">Reviewer agent</strong> — quality verdict</li>
+      <li><strong style="color:var(--red);">Security agent</strong> — vulnerability scan</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ==================== CROSS-PLATFORM ARCHITECTURE ==================== -->
+<h2>1. Cross-Platform Architecture</h2>
+<p style="color:var(--muted); margin-bottom:16px;">Single source of truth in <code>.agents/</code> with thin platform adapters generated by <code>/init</code>.</p>
+
+<div class="arch-diagram">
+  <div class="arch-row">
+    <div class="arch-box source" style="min-width:400px;">
+      <div class="label" style="color:var(--green);">.agents/</div>
+      <div class="desc">SOURCE OF TRUTH — committed to git</div>
+      <div style="display:flex; gap:12px; justify-content:center; margin-top:8px; flex-wrap:wrap;">
+        <span style="font-size:12px; color:var(--text);">skills/</span>
+        <span style="font-size:12px; color:var(--text);">agents/</span>
+        <span style="font-size:12px; color:var(--text);">guidelines/</span>
+        <span style="font-size:12px; color:var(--text);">workflows/</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="arch-arrow">▼ &nbsp; /init generates &nbsp; ▼</div>
+
+  <div class="arch-row">
+    <div class="arch-box adapter">
+      <div class="label" style="color:var(--yellow);">.claude/</div>
+      <div class="desc">Claude Code</div>
+      <div style="font-size:11px; color:var(--muted); margin-top:4px;">
+        CLAUDE.md<br>agents/*.md<br>skills/ → symlink
+      </div>
+    </div>
+    <div class="arch-box adapter">
+      <div class="label" style="color:var(--yellow);">.github/</div>
+      <div class="desc">Copilot</div>
+      <div style="font-size:11px; color:var(--muted); margin-top:4px;">
+        copilot-instructions.md<br>agents/*.agent.md<br>prompts/*.prompt.md
+      </div>
+    </div>
+    <div class="arch-box adapter">
+      <div class="label" style="color:var(--yellow);">.codex/ + AGENTS.md</div>
+      <div class="desc">Codex</div>
+      <div style="font-size:11px; color:var(--muted); margin-top:4px;">
+        AGENTS.md<br>agents/*.toml<br>config.toml
+      </div>
+    </div>
+  </div>
+
+  <div class="arch-arrow">▼ &nbsp; reads/writes &nbsp; ▼</div>
+
+  <div class="arch-row">
+    <div class="arch-box memory" style="min-width:400px;">
+      <div class="label" style="color:var(--pink);">docs/workflows/</div>
+      <div class="desc">WORKING MEMORY — gitignored, per-feature</div>
+      <div style="font-size:11px; color:var(--muted); margin-top:4px;">
+        Shared across platforms. Resume any workflow from any tool.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SKILL DISCOVERY ==================== -->
+<h2>2. Skill Discovery</h2>
+
+<table>
+  <tr><th>Path</th><th>Claude Code</th><th>Copilot</th><th>Codex</th></tr>
+  <tr><td><code>.agents/skills/</code></td><td class="sym">via symlink</td><td class="yes">native</td><td class="yes">native</td></tr>
+  <tr><td><code>.claude/skills/</code></td><td class="yes">native</td><td class="yes">native</td><td class="no">—</td></tr>
+  <tr><td><code>.github/skills/</code></td><td class="no">—</td><td class="yes">native</td><td class="no">—</td></tr>
+</table>
+
+<!-- ==================== WORKFLOW PHASES ==================== -->
+<h2>3. SDLC Workflow Phases</h2>
+
+<div class="workflow">
+  <div class="phase">
+    <div class="phase-num">
+      <div class="phase-dot" style="background:var(--accent);">1</div>
+      <div class="phase-line" style="background:var(--accent);"></div>
+    </div>
+    <div class="phase-content">
+      <div class="phase-title" style="color:var(--accent);">Clarify</div>
+      <div class="phase-detail">Refine scope, constraints, success criteria. Questions vary by workflow type.</div>
+      <div class="phase-gate">⏸ USER APPROVAL → 00-clarify.md</div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-num">
+      <div class="phase-dot" style="background:var(--cyan);">2</div>
+      <div class="phase-line" style="background:var(--cyan);"></div>
+    </div>
+    <div class="phase-content">
+      <div class="phase-title" style="color:var(--cyan);">Research</div>
+      <div class="phase-detail">Analyze codebase: domain models, existing patterns, integration points.</div>
+      <div class="phase-gate">⏸ USER APPROVAL → 01-research.md</div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-num">
+      <div class="phase-dot" style="background:var(--purple);">3</div>
+      <div class="phase-line" style="background:var(--purple);"></div>
+    </div>
+    <div class="phase-content">
+      <div class="phase-title" style="color:var(--purple);">Design</div>
+      <div class="phase-detail">Produce architecture artifacts: diagrams, API contracts, storage model, testing strategy.</div>
+      <div class="phase-gate">⏸ USER APPROVAL → 02-design/*.md</div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-num">
+      <div class="phase-dot" style="background:var(--yellow);">4</div>
+      <div class="phase-line" style="background:var(--yellow);"></div>
+    </div>
+    <div class="phase-content">
+      <div class="phase-title" style="color:var(--yellow);">Plan</div>
+      <div class="phase-detail">Break work into tasks by architecture layer. Each task gets a domain skill assignment.</div>
+      <div class="phase-gate">⏸ USER APPROVAL → 03-plan.md</div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-num">
+      <div class="phase-dot" style="background:var(--green);">5</div>
+      <div class="phase-line" style="background:transparent;"></div>
+    </div>
+    <div class="phase-content">
+      <div class="phase-title" style="color:var(--green);">Implement</div>
+      <div class="phase-detail">Multi-agent execution. For each task: Lead → Coder → Tester → Reviewer → Security → Lead (compliance).</div>
+      <div class="phase-gate">⏸ USER APPROVAL per task → 04-implementation-log.md</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== WORKFLOW TYPES ==================== -->
+<h2>4. Workflow Types</h2>
+
+<div class="type-grid">
+  <div class="type-card">
+    <div class="type-name" style="color:var(--green);">Feature</div>
+    <div class="phases">
+      <span class="active">clarify</span> → <span class="active">research</span> → <span class="active">design</span> → <span class="active">plan</span> → <span class="active">implement</span>
+    </div>
+    <div style="font-size:11px; color:var(--muted); margin-top:8px;">6 design artifacts. All 5 agents active.</div>
+  </div>
+  <div class="type-card">
+    <div class="type-name" style="color:var(--orange);">Bugfix</div>
+    <div class="phases">
+      <span class="active">clarify</span> → <span class="active">research</span> → <span class="active">design</span> → <span class="active">plan</span> → <span class="active">implement</span>
+    </div>
+    <div style="font-size:11px; color:var(--muted); margin-top:8px;">5 design artifacts. All 5 agents active.</div>
+  </div>
+  <div class="type-card">
+    <div class="type-name" style="color:var(--cyan);">Refactor</div>
+    <div class="phases">
+      <span class="active">clarify</span> → <span class="active">research</span> → <span class="active">design</span> → <span class="active">plan</span> → <span class="active">implement</span>
+    </div>
+    <div style="font-size:11px; color:var(--muted); margin-top:8px;">5 design artifacts. Security optional.</div>
+  </div>
+  <div class="type-card">
+    <div class="type-name" style="color:var(--purple);">Spike</div>
+    <div class="phases">
+      <span class="active">clarify</span> → <span class="active">research</span> → <span class="active">design</span> → <span class="inactive">plan</span> → <span class="inactive">implement</span>
+    </div>
+    <div style="font-size:11px; color:var(--muted); margin-top:8px;">2 design artifacts. Lead only. No code.</div>
+  </div>
+</div>
+
+<!-- ==================== AGENT PIPELINE ==================== -->
+<h2>5. Multi-Agent Implementation Pipeline</h2>
+<p style="color:var(--muted); margin-bottom:12px;">Each task from the plan goes through this pipeline. Retry loops (max 3x) on test/review/security failures.</p>
+
+<div class="pipeline">
+  <div class="agent-box lead">
+    <div class="name" style="color:var(--accent);">LEAD</div>
+    <div style="font-size:11px; color:var(--yellow); margin-bottom:6px;">dispatch</div>
+    <ul class="reads">
+      <li>plan task</li>
+      <li>design artifacts</li>
+      <li>workflow def</li>
+    </ul>
+  </div>
+  <div class="arrow">→</div>
+  <div class="agent-box coder">
+    <div class="name" style="color:var(--green);">CODER</div>
+    <div style="font-size:11px; color:var(--yellow); margin-bottom:6px;">code</div>
+    <ul class="reads">
+      <li>task spec</li>
+      <li>api-contracts</li>
+      <li>storage-model</li>
+      <li>domain skill</li>
+    </ul>
+  </div>
+  <div class="arrow">→</div>
+  <div class="agent-box tester">
+    <div class="name" style="color:var(--cyan);">TESTER</div>
+    <div style="font-size:11px; color:var(--yellow); margin-bottom:6px;">tests</div>
+    <ul class="reads">
+      <li>task + code</li>
+      <li>testing-strategy</li>
+      <li>domain skill</li>
+    </ul>
+  </div>
+  <div class="arrow">→</div>
+  <div class="agent-box reviewer">
+    <div class="name" style="color:var(--purple);">REVIEWER</div>
+    <div style="font-size:11px; color:var(--yellow); margin-bottom:6px;">verdict</div>
+    <ul class="reads">
+      <li>code + tests</li>
+      <li>std-verifications</li>
+      <li>principles</li>
+    </ul>
+  </div>
+  <div class="arrow">→</div>
+  <div class="agent-box security">
+    <div class="name" style="color:var(--red);">SECURITY</div>
+    <div style="font-size:11px; color:var(--yellow); margin-bottom:6px;">assessment</div>
+    <ul class="reads">
+      <li>code</li>
+      <li>api-contracts</li>
+      <li>error-handling</li>
+    </ul>
+  </div>
+  <div class="arrow">→</div>
+  <div class="agent-box lead">
+    <div class="name" style="color:var(--accent);">LEAD</div>
+    <div style="font-size:11px; color:var(--green); margin-bottom:6px;">compliance</div>
+    <ul class="reads">
+      <li>all outputs</li>
+      <li>arch-decisions</li>
+      <li>api-contracts</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ==================== CONTEXT ISOLATION ==================== -->
+<h2>6. Agent Context Isolation</h2>
+<p style="color:var(--muted); margin-bottom:12px;">Each agent sees only what it needs. Quality = (Correctness + Completeness) / (Context Size + Noise).</p>
+
+<div class="grid grid-2" style="margin-top:16px;">
+  <div class="card">
+    <div class="card-header"><span class="badge badge-agent">Coder</span> Reads</div>
+    <ul>
+      <li><strong>task spec</strong> — single task from plan</li>
+      <li><strong>api-contracts.md</strong> — API surface</li>
+      <li><strong>storage-model.md</strong> — data layer</li>
+      <li><strong>arch-decisions.md</strong> — constraints</li>
+      <li><strong>domain skill</strong> — e.g. backend-node</li>
+    </ul>
+    <div style="margin-top:8px; font-size:11px; color:var(--red);">Does NOT read: research, clarify, other tasks</div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="badge badge-agent">Tester</span> Reads</div>
+    <ul>
+      <li><strong>task spec</strong> — what was requested</li>
+      <li><strong>coder's output</strong> — the code to test</li>
+      <li><strong>testing-strategy.md</strong> — approach</li>
+      <li><strong>domain skill</strong> — framework patterns</li>
+    </ul>
+    <div style="margin-top:8px; font-size:11px; color:var(--red);">Does NOT read: arch-decisions, other tasks</div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="badge badge-agent">Reviewer</span> Reads</div>
+    <ul>
+      <li><strong>task spec</strong> — intent</li>
+      <li><strong>coder's output</strong> — code changes</li>
+      <li><strong>tester's output</strong> — test results</li>
+      <li><strong>standard-verifications.md</strong> — checklist</li>
+      <li><strong>principles.md</strong> — SOLID/KISS/YAGNI/DRY</li>
+    </ul>
+    <div style="margin-top:8px; font-size:11px; color:var(--red);">Does NOT read: research, clarify, other tasks</div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="badge badge-agent">Security</span> Reads</div>
+    <ul>
+      <li><strong>task spec</strong> — scope</li>
+      <li><strong>coder's output</strong> — code to audit</li>
+      <li><strong>api-contracts.md</strong> — attack surface</li>
+      <li><strong>error-handling.md</strong> — standards</li>
+    </ul>
+    <div style="margin-top:8px; font-size:11px; color:var(--red);">Does NOT read: testing, clarify, other tasks</div>
+  </div>
+</div>
+
+<!-- ==================== ARTIFACT FLOW ==================== -->
+<h2>7. Artifact Flow</h2>
+
+<div class="card" style="font-family: monospace; font-size: 13px; line-height: 1.8; overflow-x: auto;">
+<pre style="color:var(--text);">
+docs/workflows/feature/2026-04-06-notifications/
+│
+├── manifest.json              ← workflow state, current phase
+│
+├── 00-clarify.md              ← Phase 1 output
+│       └──► read by Phase 2
+│
+├── 01-research.md             ← Phase 2 output
+│       └──► read by Phase 3
+│
+├── 02-design/                 ← Phase 3 output
+│   ├── architecture-diagrams.md ──► Lead (compliance)
+│   ├── architecture-decisions.md ──► Coder, Lead
+│   ├── api-contracts.md ──────────► Coder, Security, Lead
+│   ├── storage-model.md ──────────► Coder, Lead
+│   ├── testing-strategy.md ───────► Tester
+│   └── standard-verifications.md ─► Reviewer
+│
+├── 03-plan.md                 ← Phase 4 output
+│       └──► one task at a time to each agent
+│
+└── 04-implementation-log.md   ← Phase 5 output
+        ├── Task 1: ✅ Coder → Tester → Reviewer → Security → Compliant
+        ├── Task 2: ✅ Coder → Tester → Reviewer → Security → Compliant
+        └── Task 3: ⏳ In progress...
+</pre>
+</div>
+
+<!-- ==================== PLATFORM COMPARISON ==================== -->
+<h2>8. Platform Capabilities</h2>
+
+<table>
+  <tr><th>Capability</th><th>Claude Code</th><th>Copilot</th><th>Codex</th></tr>
+  <tr><td>Isolated subagents</td><td class="yes">YES</td><td class="yes">YES</td><td class="yes">YES</td></tr>
+  <tr><td>Agent teams</td><td class="yes">YES (experimental)</td><td class="no">—</td><td class="no">—</td></tr>
+  <tr><td>Inter-agent messaging</td><td class="yes">YES</td><td class="no">—</td><td class="no">—</td></tr>
+  <tr><td>Shared task list</td><td class="yes">YES</td><td class="no">—</td><td class="no">—</td></tr>
+  <tr><td>Parallel execution</td><td class="yes">worktrees</td><td class="no">—</td><td class="yes">threads (6)</td></tr>
+  <tr><td>Sequential pipeline</td><td class="yes">YES</td><td class="yes">simulate</td><td class="yes">YES</td></tr>
+  <tr><td>Skills from .agents/</td><td class="sym">symlink</td><td class="yes">native</td><td class="yes">native</td></tr>
+  <tr><td>Hooks</td><td class="yes">settings.json</td><td class="yes">hooks/*.json</td><td class="yes">hooks.json</td></tr>
+  <tr><td>MCP servers</td><td class="yes">YES</td><td class="yes">YES</td><td class="yes">YES</td></tr>
+</table>
+
+<div style="margin-top:40px; padding-top:16px; border-top:1px solid var(--border); color:var(--muted); font-size:12px;">
+  Generated 2026-04-06. Source: <code>.agents/</code> — the single source of truth.
+</div>
+
+</body>
+</html>

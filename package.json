@@ -1,0 +1,22 @@
+{
+  "name": "@ai-agents/sdlc",
+  "version": "1.0.1",
+  "description": "AI-powered SDLC system with 5 specialized agents. Walks through clarify, research, design, plan, implement with approval gates. Works with Claude Code, GitHub Copilot, and OpenAI Codex.",
+  "bin": {
+    "sdlc": "./bin/sdlc.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/krukovden/sdlc.git"
+  },
+  "homepage": "https://github.com/krukovden/sdlc#readme",
+  "files": [
+    "bin/",
+    "setup.js",
+    ".agents/",
+    "AGENTS.md",
+    "README.md"
+  ],
+  "keywords": ["sdlc", "ai", "agents", "claude", "copilot", "codex"],
+  "license": "MIT"
+}

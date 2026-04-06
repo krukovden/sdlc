@@ -1,0 +1,249 @@
+# SDLC Multi-Agent System
+
+An AI-powered **Software Development Life Cycle** system. Five specialized agents handle the work — you approve the decisions.
+
+Works with **Claude Code**, **GitHub Copilot**, and **OpenAI Codex**.
+
+---
+
+## The Idea
+
+Traditional software development needs many roles: analyst, architect, developer, tester, reviewer. This system gives each role to a specialized AI agent:
+
+```
+  You say:     /sdlc feature "add user notifications"
+
+  Lead agent    understands what you need     → clarify
+  Lead agent    analyzes your codebase        → research
+  Lead agent    designs the solution          → design
+  Lead agent    breaks it into tasks          → plan
+  Coder agent   writes the code              ─┐
+  Tester agent  writes and runs tests         │ implement
+  Reviewer agent checks code quality          │ (per task)
+  Security agent scans for vulnerabilities   ─┘
+```
+
+You approve after each phase. Tasks run continuously without stopping between them.
+
+---
+
+## Quick Start
+
+```bash
+npm i @ai-agents/sdlc
+npx sdlc
+
+# Setup asks which tool you use (Claude Code / Copilot / Codex / All)
+# and generates platform-specific config files from .agents/
+
+# Then start a workflow:
+/sdlc feature "add user notifications"
+```
+
+To regenerate platform files: `npx sdlc` or `npx sdlc [claude|copilot|codex|all]`
+
+---
+
+## How It Works
+
+### 1. You pick a workflow type
+
+| Type | When to use | Ends at |
+|------|-------------|---------|
+| `feature` | Build something new | implement |
+| `bugfix` | Fix broken behavior | implement |
+| `refactor` | Restructure working code | implement |
+| `spike` | Research a question | design (no code) |
+
+### 2. The system walks through phases
+
+```
+  clarify     What are we building? Scope? Constraints?
+     ⏸ you approve
+  research    What exists in the codebase? What patterns?
+     ⏸ you approve
+  design      Architecture, API contracts, data model, test strategy
+     ⏸ you approve
+  plan        Task breakdown with dependencies and skill assignments
+     ⏸ you approve
+  implement   Agents execute tasks continuously (stops only on failure)
+     ⏸ you approve final result
+```
+
+### 3. Each task goes through the agent pipeline
+
+```
+  Lead dispatches → Coder → Tester → Reviewer → Security → Lead checks compliance
+```
+
+If any agent fails, the system retries up to 3 times. If it still fails, it stops and asks you what to do.
+
+### 4. Git worktree isolation
+
+At workflow start, the system asks: **worktree or current branch?**
+
+- **Worktree** — creates an isolated copy of the repo. Your main branch stays clean while agents work in parallel. Recommended for features.
+- **Current branch** — works directly. Simpler, good for bugfixes.
+
+### 5. Live dashboard
+
+The system generates a **live HTML dashboard** (Kanban board) that shows agent progress in real time:
+
+```
+  ┌─ Queue ──────┐  ┌─ Active ─────┐  ┌─ Done ───────┐
+  │ Task 3       │  │ Task 2       │  │ Task 1       │
+  │ Task 4       │  │ Agent: Tester│  │ ✅ All passed │
+  │              │  │ ✅⚙○○○       │  │              │
+  └──────────────┘  └──────────────┘  └──────────────┘
+```
+
+It polls `manifest.json` every 2 seconds — no refresh needed. Launches automatically in your browser when you start a workflow.
+
+### 6. Everything is saved to files
+
+Each workflow creates a folder in `docs/workflows/` with all artifacts. Next session — even from a different tool — the system finds it and offers to resume.
+
+---
+
+## Five Agents
+
+| Agent | What it does | Can modify code? |
+|-------|-------------|:----------------:|
+| **Lead** | Orchestrates phases, dispatches agents, checks design compliance | No |
+| **Coder** | Writes implementation code | Yes |
+| **Tester** | Writes and runs tests | Yes |
+| **Reviewer** | Reviews code quality, outputs PASS or FAIL | No |
+| **Security** | Scans for vulnerabilities, outputs PASS or FAIL | No |
+
+---
+
+## Cross-Platform
+
+The system works from any AI coding tool. `.agents/` is the single source of truth — platform adapters are generated.
+
+```
+                         .agents/
+            ┌──────── source of truth ────────┐
+            │    skills, agents, guidelines,   │
+            │    workflows                     │
+            └───────┬──────────┬──────────┬───┘
+                    │          │          │
+                    ▼          ▼          ▼
+              .claude/    .github/    .codex/
+             Claude Code   Copilot     Codex
+```
+
+Run `npm i @ai-agents/sdlc && npx sdlc` once per project — it generates the right config for your tool.
+
+---
+
+## Project Structure
+
+```
+.agents/                  ← committed, shared across all tools
+├── skills/               ← what each agent knows (17 skills)
+├── agents/               ← how each agent behaves (5 agents)
+├── guidelines/           ← coding standards everyone follows
+└── workflows/            ← phase definitions per workflow type
+
+.claude/                  ← generated by setup.js
+.github/                  ← generated by setup.js
+.codex/                   ← generated by setup.js
+
+docs/workflows/           ← gitignored, your active work
+```
+
+---
+
+## Skills
+
+Skills are domain knowledge that agents load on demand:
+
+| Skill | What it knows |
+|-------|--------------|
+| `architect` | API design, system boundaries, ADRs |
+| `frontend-angular` | Angular 18+, signals, RxJS |
+| `backend-node` | Node/TS, controllers → services → repos |
+| `backend-csharp` | C# Azure Functions, EF Core |
+| `devops-azure` | Azure Pipelines, templates |
+| `devops-github` | GitHub Actions, reusable workflows |
+| `enhanced-reviewer` | Code review checklist |
+
+---
+
+## Commands
+
+### Setup
+
+| Command | What it does |
+|---------|-------------|
+| `npm i @ai-agents/sdlc` | Install the package |
+| `npx sdlc` | Interactive setup — asks which tool, generates config |
+| `npx sdlc claude` | Generate Claude Code config only (also: `copilot`, `codex`, `all`) |
+
+### Full Workflow
+
+```bash
+/sdlc feature "add user notifications"    # full pipeline: clarify → implement
+/sdlc bugfix "login returns 500"           # same pipeline, bugfix-focused
+/sdlc refactor "extract payment service"   # same pipeline, refactor-focused
+/sdlc spike "evaluate auth libraries"      # stops at design, no code
+```
+
+### Single Phase
+
+Run one phase at a time when you want more control:
+
+```bash
+/sdlc:clarify "add user notifications"     # just clarify scope
+/sdlc:research                             # just analyze codebase
+/sdlc:design                               # just produce design artifacts
+/sdlc:plan                                 # just break into tasks
+/sdlc:implement                            # just execute the plan
+```
+
+### Resume
+
+```bash
+/sdlc:resume                               # resume from where you left off
+/sdlc:resume design                        # resume from a specific phase
+```
+
+### Command Reference Across Platforms
+
+| Action | Claude Code | Copilot (VS Code) | Codex |
+|--------|------------|-------------------|-------|
+| **Setup** | `npx sdlc` | `npx sdlc` | `npx sdlc` |
+| **Full pipeline** | `/sdlc feature "..."` | `/sdlc feature "..."` | `$sdlc feature "..."` |
+| **Clarify only** | `/sdlc:clarify "..."` | `/sdlc:clarify "..."` | `$sdlc-clarify "..."` |
+| **Research only** | `/sdlc:research` | `/sdlc:research` | `$sdlc-research` |
+| **Design only** | `/sdlc:design` | `/sdlc:design` | `$sdlc-design` |
+| **Plan only** | `/sdlc:plan` | `/sdlc:plan` | `$sdlc-plan` |
+| **Implement only** | `/sdlc:implement` | `/sdlc:implement` | `$sdlc-implement` |
+| **Resume workflow** | `/sdlc:resume` | `/sdlc:resume` | `$sdlc resume` |
+| **Resume from phase** | `/sdlc:resume design` | `/sdlc:resume design` | `$sdlc resume design` |
+
+### Typical Session
+
+```bash
+# First time setup
+npm i @ai-agents/sdlc && npx sdlc
+
+# Start a feature
+/sdlc feature "add email notifications for order updates"
+  → clarify: answers scope questions, approve
+  → research: reviews codebase, approve
+  → design: produces API contracts + data model, approve
+  → plan: 4 tasks with dependencies, approve
+  → implement: agents execute all 4 tasks, approve final result
+  → done: merge, create PR, or keep branch
+
+# Next day, different tool — resume where you left off
+/sdlc:resume
+```
+
+---
+
+## Architecture Diagram
+
+Open `docs/architecture.html` in a browser for an interactive visual reference covering cross-platform architecture, workflow phases, agent pipeline, context isolation, and platform capabilities.
