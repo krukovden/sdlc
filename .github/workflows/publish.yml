@@ -1,9 +1,12 @@
 name: Publish to npm
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      base_version:
+        description: 'Major.Minor version (e.g. 1.0)'
+        required: true
+        default: '1.0'
 
 jobs:
   publish:
@@ -13,15 +16,28 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
 
-      - name: Get version from tag
+      - name: Calculate next patch version
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+        run: |
+          BASE="${{ github.event.inputs.base_version }}"
+          LATEST=$(git tag -l "v${BASE}.*" --sort=-v:refname | head -n 1)
+          if [ -z "$LATEST" ]; then
+            PATCH=1
+          else
+            CURRENT_PATCH="${LATEST##*.}"
+            PATCH=$((CURRENT_PATCH + 1))
+          fi
+          VERSION="${BASE}.${PATCH}"
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: ${VERSION}"
 
       - name: Update package.json version
         run: npm version ${{ steps.version.outputs.VERSION }} --no-git-tag-version
@@ -30,11 +46,11 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Auto-increment patch version
+      - name: Tag and push
         run: |
-          npm version patch --no-git-tag-version
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json
-          git commit -m "chore: bump version to $(node -p 'require(\"./package.json\").version')"
-          git push origin HEAD:main
+          git commit -m "chore: release v${{ steps.version.outputs.VERSION }}"
+          git tag "v${{ steps.version.outputs.VERSION }}"
+          git push origin HEAD:main --tags
