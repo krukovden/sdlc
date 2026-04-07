@@ -134,9 +134,11 @@ function assertValidTOML(baseDir, relativePath) {
   );
   assert.ok(hasStructure, `TOML file "${full}" has no key=value or [section] lines`);
 
-  // Check for unclosed double quotes on each line (ignore comment lines)
+  // Check for unclosed double quotes on each line (ignore comment lines and triple-quoted strings)
   for (const line of lines) {
     const stripped = line.replace(/\s*#.*$/, ''); // strip inline comments
+    // Skip lines containing triple-quoted strings (""") — valid TOML multiline syntax
+    if (stripped.includes('"""')) continue;
     const quoteCount = (stripped.match(/"/g) || []).length;
     assert.ok(
       quoteCount % 2 === 0,
