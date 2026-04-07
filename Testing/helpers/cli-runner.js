@@ -63,7 +63,7 @@ function runClaude(command, cwd, { timeout = 600000 } = {}) {
 
   try {
     stdout = execSync(
-      `claude -p "${escapedPrompt}" --no-browser`,
+      `claude -p "${escapedPrompt}" --dangerously-skip-permissions`,
       {
         cwd,
         timeout,
