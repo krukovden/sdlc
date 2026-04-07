@@ -21,5 +21,12 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
+  "scripts": {
+    "test": "node Testing/run.js",
+    "test:tier1": "node Testing/run.js tier1",
+    "test:tier2": "node Testing/run.js tier2",
+    "test:all": "node Testing/run.js all",
+    "test:visual": "npx playwright test Testing/tier2/html-visual.test.js"
+  },
   "license": "MIT"
 }
