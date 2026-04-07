@@ -18,21 +18,42 @@ function ensureLogsDir() {
 
 /**
  * Build the prompt for a given workflow command.
- * Injects --auto-approve into the /sdlc command so the workflow
- * skills skip all interactive gates.
+ * Extracts the workflow type and description, then constructs
+ * an explicit prompt that tells Claude to follow the SDLC skill
+ * with --auto-approve.
  *
  * @param {string} command  - e.g. '/sdlc feature "add POST /echo endpoint"'
- * @returns {string} Full prompt with auto-approve flag
+ * @returns {string} Full prompt
  */
 function buildPrompt(command) {
-  // Inject --auto-approve after the workflow type
-  // e.g. '/sdlc feature "..."' → '/sdlc feature --auto-approve "..."'
-  const autoCmd = command.replace(
-    /^(\/sdlc\s+\w+)\s+/,
-    '$1 --auto-approve '
-  );
+  // Parse: /sdlc <type> "<description>"
+  const match = command.match(/^\/sdlc\s+(\w+)\s+(.+)$/);
+  if (!match) return command;
 
-  return `Run: ${autoCmd}`;
+  const type = match[1];
+  const description = match[2].replace(/^["']|["']$/g, '');
+
+  return [
+    `You are running an SDLC ${type} workflow with --auto-approve mode.`,
+    '',
+    `Task: ${description}`,
+    '',
+    'Follow these instructions exactly:',
+    '',
+    '1. Read the SDLC workflow skill from .agents/skills/sdlc/SKILL.md',
+    `2. Read the ${type} workflow definition from .agents/workflows/${type}.md`,
+    '3. --auto-approve is active: skip ALL interactive gates (type confirmation, git isolation, dashboard, phase approvals)',
+    '4. Use current branch, no dashboard, no worktree',
+    `5. Create the workflow folder: docs/workflows/${type}/{date}-{slug}/`,
+    '6. Create manifest.json with all phases',
+    `7. Execute ALL phases sequentially: ${type === 'spike' ? 'clarify → research → design → DONE' : 'clarify → research → design → plan → implement'}`,
+    '8. For each phase, read the phase skill from .agents/skills/sdlc-{phase}/SKILL.md',
+    '9. Produce ALL artifacts defined in the workflow definition',
+    '10. Update manifest.json status to "approved" after each phase',
+    type !== 'spike' ? '11. For implementation: follow the agent pipeline (Coder → Tester → Reviewer → Security → Lead compliance)' : '',
+    '',
+    'Do NOT ask questions. Do NOT stop. Run the entire workflow to completion.',
+  ].filter(Boolean).join('\n');
 }
 
 /**

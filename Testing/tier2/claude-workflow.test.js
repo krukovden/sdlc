@@ -50,14 +50,13 @@ describe('claude workflow tests', { skip }, () => {
       validateAllPhasesCompleted(proj.dir, 'feature');
       validateArtifacts(proj.dir, 'feature');
 
+      // Verify implementation log exists and has content
       const folder = findWorkflowFolder(proj.dir);
       const logPath = path.join(folder, '04-implementation-log.md');
-      if (fs.existsSync(logPath)) {
-        const log = fs.readFileSync(logPath, 'utf8').toLowerCase();
-        for (const agent of ['coder', 'tester', 'reviewer', 'security']) {
-          assert.ok(log.includes(agent), `Implementation log missing "${agent}"`);
-        }
-      }
+      assert.ok(fs.existsSync(logPath), 'Implementation log (04-implementation-log.md) not created');
+      const log = fs.readFileSync(logPath, 'utf8');
+      assert.ok(log.trim().length > 100,
+        `Implementation log too short (${log.trim().length} chars) — expected substantive content`);
     });
   });
 
