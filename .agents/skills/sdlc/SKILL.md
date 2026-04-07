@@ -9,6 +9,19 @@ description: "SDLC workflow orchestrator — routes /sdlc commands to the correc
 
 You orchestrate the full SDLC workflow. You determine the workflow type, create the workspace, and drive phase-by-phase execution with user approval gates between each phase.
 
+## Auto-Approve Mode
+
+When the command includes `--auto-approve` (e.g., `/sdlc feature --auto-approve "description"`), run the entire workflow without any interactive stops:
+
+- **Skip** workflow type confirmation — use detected/explicit type directly
+- **Skip** git isolation question — use current branch
+- **Skip** dashboard question — disable dashboard
+- **Skip** all phase stop-gates — auto-approve each phase immediately after artifact is produced
+- **Still produce** all artifacts and update manifest normally
+- **Still follow** the full agent pipeline for implementation tasks
+
+Parse and remove `--auto-approve` from the arguments before processing the description.
+
 ## Workflow Type Detection
 
 ### 1. Explicit
@@ -23,7 +36,7 @@ If the user runs `/sdlc "description"` without a type, analyze the description h
 4. Otherwise → `feature` (default)
 
 ### 3. Confirmed
-Always confirm the detected type before proceeding: _"This looks like a **{type}**. Correct?"_
+Unless `--auto-approve` is set, always confirm the detected type before proceeding: _"This looks like a **{type}**. Correct?"_
 
 ## Phase Sequencing
 
@@ -45,12 +58,14 @@ Use detection logic above.
 Create a short slug from the task description (e.g., "Add user notification preferences" → `notification-prefs`).
 
 ### 3. Ask about git isolation
+Unless `--auto-approve` is set (use current branch):
 > "Create isolated worktree or work on current branch?"
 
 - **Worktree**: If `superpowers:using-git-worktrees` is available, invoke it. Otherwise, create a feature branch and git worktree manually.
 - **Current branch**: Work directly on the current branch
 
 ### 4. Ask about HTML dashboard
+Unless `--auto-approve` is set (skip dashboard):
 > "Launch live HTML dashboard in browser? (Y/n)"
 
 Default is **yes**. If user confirms (or doesn't respond / presses enter):
@@ -141,7 +156,7 @@ Pass the workflow type and manifest path to each phase skill.
 
 ## Phase Transition
 
-After a phase is approved by the user:
+After a phase is approved (by the user, or automatically if `--auto-approve`):
 1. Update manifest: set current phase status to `approved` with `completed_at` timestamp
 2. Advance `current_phase` to the next phase
 3. Set next phase status to `in_progress`

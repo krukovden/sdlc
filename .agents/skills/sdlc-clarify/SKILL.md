@@ -90,4 +90,6 @@ Write `00-clarify.md` to the workflow folder with this structure:
 
 ## Stop-Gate
 
-Present the stop-gate after producing the artifact. Include the refined scope summary and key decisions surfaced.
+If `--auto-approve` is active, skip this gate — proceed immediately to the next phase.
+
+Otherwise, present the stop-gate after producing the artifact. Include the refined scope summary and key decisions surfaced.

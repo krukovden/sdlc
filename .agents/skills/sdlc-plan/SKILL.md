@@ -145,4 +145,6 @@ Write `03-plan.md` to the workflow folder:
 
 ## Stop-Gate
 
-Present the stop-gate with task summary table, total task count, and Security activation decision (for Refactor).
+If `--auto-approve` is active, skip this gate — proceed immediately to the next phase.
+
+Otherwise, present the stop-gate with task summary table, total task count, and Security activation decision (for Refactor).

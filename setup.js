@@ -171,9 +171,12 @@ const SLASH_COMMANDS = {
     description: 'Start an SDLC workflow — clarify → research → design → plan → implement',
     claude: `Invoke the \`sdlc\` skill to run the full SDLC workflow pipeline.
 
-$ARGUMENTS format: \`<type> <description>\` or just \`<description>\`
+$ARGUMENTS format: \`<type> [--auto-approve] <description>\` or just \`<description>\`
 
 Supported types: \`feature\`, \`bugfix\`, \`refactor\`, \`spike\`
+
+Options:
+- \`--auto-approve\` — skip all interactive gates, run to completion without stopping
 
 Examples:
 - \`/sdlc feature "Add user notification preferences"\`
@@ -181,6 +184,7 @@ Examples:
 - \`/sdlc refactor "Extract payment logic into separate service"\`
 - \`/sdlc spike "Evaluate auth library options"\`
 - \`/sdlc "Investigate auth options"\` (type auto-detected)
+- \`/sdlc feature --auto-approve "Add endpoint"\` (no stops)
 
 If $ARGUMENTS is empty, ask the user what they want to work on.
 If $ARGUMENTS is a file path, read that file as the task description/PRD.

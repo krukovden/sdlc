@@ -221,7 +221,9 @@ Before starting a task, check its `Depends on` field from `03-plan.md`:
 
 ## Failed Task Stop-Gate
 
-When a task exhausts retries (3 cycles on any agent), present:
+If `--auto-approve` is active and a task fails, skip it (set status to `skipped`) and continue to the next task. Log the failure but do not stop.
+
+Otherwise, when a task exhausts retries (3 cycles on any agent), present:
 
 ```
 ❌ Task {N} Failed: {title}

@@ -17,22 +17,22 @@ function ensureLogsDir() {
 }
 
 /**
- * Build the auto-approve prompt for a given workflow command.
+ * Build the prompt for a given workflow command.
+ * Injects --auto-approve into the /sdlc command so the workflow
+ * skills skip all interactive gates.
  *
  * @param {string} command  - e.g. '/sdlc feature "add POST /echo endpoint"'
- * @returns {string} Full prompt with auto-approve instructions
+ * @returns {string} Full prompt with auto-approve flag
  */
 function buildPrompt(command) {
-  return [
-    `Run: ${command}`,
-    '',
-    'IMPORTANT INSTRUCTIONS:',
-    '- Auto-approve ALL phase gates. Do NOT stop between phases.',
-    '- Do NOT ask for user confirmation at any point.',
-    '- Run the entire workflow to completion.',
-    '- Create all artifacts in docs/workflows/ as defined by the workflow type.',
-    '- Update manifest.json with status "approved" for each completed phase.',
-  ].join('\n');
+  // Inject --auto-approve after the workflow type
+  // e.g. '/sdlc feature "..."' → '/sdlc feature --auto-approve "..."'
+  const autoCmd = command.replace(
+    /^(\/sdlc\s+\w+)\s+/,
+    '$1 --auto-approve '
+  );
+
+  return `Run: ${autoCmd}`;
 }
 
 /**

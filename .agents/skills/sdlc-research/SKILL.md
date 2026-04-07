@@ -122,4 +122,6 @@ Write `01-research.md` to the workflow folder with this structure:
 
 ## Stop-Gate
 
-Present the stop-gate after producing the artifact. Include key findings and any risks discovered.
+If `--auto-approve` is active, skip this gate — proceed immediately to the next phase.
+
+Otherwise, present the stop-gate after producing the artifact. Include key findings and any risks discovered.

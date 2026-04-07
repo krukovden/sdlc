@@ -98,4 +98,6 @@ Always cite sources in design artifacts: `[Source](URL)`.
 
 ## Stop-Gate
 
-Present the stop-gate listing all produced artifacts with one-line descriptions and key architectural decisions made.
+If `--auto-approve` is active, skip this gate — proceed immediately to the next phase.
+
+Otherwise, present the stop-gate listing all produced artifacts with one-line descriptions and key architectural decisions made.
