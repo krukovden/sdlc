@@ -13,5 +13,6 @@ docs/*
 AGENTS.md
 
 # Testing runtime artifacts
+Testing/runs/
 Testing/logs/
 Testing/tmp/

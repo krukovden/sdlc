@@ -2,15 +2,13 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const os = require('node:os');
 const { execSync } = require('node:child_process');
 
 const SDLC_ROOT = path.resolve(__dirname, '..', '..');
+const RUNS_DIR = path.join(SDLC_ROOT, 'Testing', 'runs');
 
 /**
  * Recursively copy a directory from src to dest.
- * @param {string} src
- * @param {string} dest
  */
 function copyDirSync(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
@@ -26,7 +24,8 @@ function copyDirSync(src, dest) {
 }
 
 /**
- * Create a temp project directory for testing.
+ * Create a test project directory inside Testing/runs/<tier>-<timestamp>-<label>/
+ * so test artifacts are easy to find and delete.
  *
  * @param {object} options
  * @param {number} [options.tier=1]   - 1 or 2; tier 2 also copies Testing/fixtures/test-project/
@@ -34,8 +33,12 @@ function copyDirSync(src, dest) {
  * @returns {Promise<{ dir: string, workflowsDir: string, cleanup: () => void }>}
  */
 async function create({ tier = 1, tool } = {}) {
-  // 1. Create temp dir
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sdlc-test-'));
+  // 1. Create run dir inside Testing/runs/
+  const timestamp = Date.now();
+  const label = tool || 'base';
+  const dirName = `tier${tier}-${timestamp}-${label}`;
+  const dir = path.join(RUNS_DIR, dirName);
+  fs.mkdirSync(dir, { recursive: true });
 
   // 2. Copy .agents/ from SDLC_ROOT
   const agentsSrc = path.join(SDLC_ROOT, '.agents');
@@ -76,8 +79,11 @@ async function create({ tier = 1, tool } = {}) {
   // 6. Return result
   const workflowsDir = path.join(dir, 'docs', 'workflows');
 
+  // SDLC_TEST_KEEP=1 preserves run folders for inspection
   function cleanup() {
-    fs.rmSync(dir, { recursive: true, force: true });
+    if (!process.env.SDLC_TEST_KEEP) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   }
 
   return { dir, workflowsDir, cleanup };
