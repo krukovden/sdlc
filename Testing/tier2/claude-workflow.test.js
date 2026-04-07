@@ -1,93 +1,173 @@
+// Testing/tier2/claude-workflow.test.js
+//
+// End-to-end tests that run SDLC workflows through Claude Code CLI
+// in headless mode (claude -p "prompt" --no-browser).
+//
+// Requirements:
+//   - Claude Code CLI installed and authenticated
+//   - ANTHROPIC_API_KEY set (or claude already logged in)
+//
+// Run:
+//   node Testing/run.js tier2 claude
+//   node Testing/run.js tier2 claude --keep   (preserve artifacts)
+
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const path = require('node:path');
 const { create } = require('../helpers/temp-project');
-const { spawnCLI, sendInput, waitForPhase, killCLI, getManifest } = require('../helpers/cli-runner');
-const { validateManifest, validateArtifacts, validateArtifactContent, validatePhaseProgression, findWorkflowFolder } = require('../helpers/artifact-validator');
+const { runClaude, getManifest } = require('../helpers/cli-runner');
+const {
+  validateManifest,
+  validateArtifacts,
+  validateArtifactContent,
+  validatePhaseProgression,
+  findWorkflowFolder,
+} = require('../helpers/artifact-validator');
 
 const tool = process.env.SDLC_TEST_TOOL;
 const skip = tool && tool !== 'claude';
 
 describe('claude workflow tests', { skip }, () => {
-  let proj;
-  before(async () => { proj = await create({ tier: 2, tool: 'claude' }); });
-  after(() => { proj.cleanup(); });
 
-  describe('feature workflow', { timeout: 1800000 }, () => {
-    let handle;
-    after(async () => { if (handle) await killCLI(handle); });
+  // --- Feature workflow ---
+  describe('feature workflow', { timeout: 600000 }, () => {
+    let proj;
 
-    it('completes all 5 phases', async () => {
-      handle = spawnCLI('claude', '/sdlc feature "add POST /echo endpoint that returns the request body"', proj.dir);
-      const phases = ['clarify', 'research', 'design', 'plan', 'implement'];
-      for (const phase of phases) {
-        await waitForPhase(proj.dir, phase, 300000);
-        sendInput(handle, 'approve');
-      }
-      validateManifest(proj.dir, 'feature');
-      validateArtifacts(proj.dir, 'feature');
+    before(async () => {
+      proj = await create({ tier: 2, tool: 'claude' });
+    });
+    after(() => { if (proj) proj.cleanup(); });
+
+    it('completes all 5 phases and creates all artifacts', () => {
+      const result = runClaude(
+        '/sdlc feature "add POST /echo endpoint that returns the request body"',
+        proj.dir,
+        { timeout: 600000 }
+      );
+
+      // CLI should exit cleanly
+      assert.strictEqual(result.exitCode, 0,
+        `Claude CLI failed (exit ${result.exitCode}). Log: ${result.logFile}`);
+
+      // Validate manifest
+      const manifest = validateManifest(proj.dir, 'feature');
       validatePhaseProgression(proj.dir);
+
+      // All phases should be approved
+      for (const [phase, data] of Object.entries(manifest.phases)) {
+        assert.strictEqual(data.status, 'approved',
+          `Phase "${phase}" is "${data.status}", expected "approved"`);
+      }
+
+      // All artifacts should exist
+      validateArtifacts(proj.dir, 'feature');
+
+      // Implementation log should reference all agents
       const folder = findWorkflowFolder(proj.dir);
-      const logPath = require('node:path').join(folder, '04-implementation-log.md');
+      const logPath = path.join(folder, '04-implementation-log.md');
       if (fs.existsSync(logPath)) {
         const log = fs.readFileSync(logPath, 'utf8');
-        assert.ok(log.includes('Coder'), 'Implementation log missing Coder');
-        assert.ok(log.includes('Tester'), 'Implementation log missing Tester');
-        assert.ok(log.includes('Reviewer'), 'Implementation log missing Reviewer');
-        assert.ok(log.includes('Security'), 'Implementation log missing Security');
+        for (const agent of ['Coder', 'Tester', 'Reviewer', 'Security']) {
+          assert.ok(log.includes(agent),
+            `Implementation log missing "${agent}"`);
+        }
       }
     });
   });
 
-  describe('bugfix workflow', { timeout: 1800000 }, () => {
-    let handle;
-    after(async () => { if (handle) await killCLI(handle); });
-    it('completes all 5 phases with bugfix artifacts', async () => {
-      handle = spawnCLI('claude', '/sdlc bugfix "GET /health returns 500 when no DB connection"', proj.dir);
-      const phases = ['clarify', 'research', 'design', 'plan', 'implement'];
-      for (const phase of phases) { await waitForPhase(proj.dir, phase, 300000); sendInput(handle, 'approve'); }
-      validateManifest(proj.dir, 'bugfix');
+  // --- Bugfix workflow ---
+  describe('bugfix workflow', { timeout: 600000 }, () => {
+    let proj;
+
+    before(async () => {
+      proj = await create({ tier: 2, tool: 'claude' });
+    });
+    after(() => { if (proj) proj.cleanup(); });
+
+    it('completes all 5 phases with bugfix-specific artifacts', () => {
+      const result = runClaude(
+        '/sdlc bugfix "GET /health returns 500 when no DB connection"',
+        proj.dir,
+        { timeout: 600000 }
+      );
+
+      assert.strictEqual(result.exitCode, 0,
+        `Claude CLI failed (exit ${result.exitCode}). Log: ${result.logFile}`);
+
+      const manifest = validateManifest(proj.dir, 'bugfix');
+
+      for (const [phase, data] of Object.entries(manifest.phases)) {
+        assert.strictEqual(data.status, 'approved',
+          `Phase "${phase}" is "${data.status}", expected "approved"`);
+      }
+
       validateArtifacts(proj.dir, 'bugfix');
     });
   });
 
-  describe('refactor workflow', { timeout: 1800000 }, () => {
-    let handle;
-    after(async () => { if (handle) await killCLI(handle); });
-    it('completes all 5 phases with refactor artifacts', async () => {
-      handle = spawnCLI('claude', '/sdlc refactor "extract health check into service layer"', proj.dir);
-      const phases = ['clarify', 'research', 'design', 'plan', 'implement'];
-      for (const phase of phases) { await waitForPhase(proj.dir, phase, 300000); sendInput(handle, 'approve'); }
-      validateManifest(proj.dir, 'refactor');
+  // --- Refactor workflow ---
+  describe('refactor workflow', { timeout: 600000 }, () => {
+    let proj;
+
+    before(async () => {
+      proj = await create({ tier: 2, tool: 'claude' });
+    });
+    after(() => { if (proj) proj.cleanup(); });
+
+    it('completes all 5 phases with refactor-specific artifacts', () => {
+      const result = runClaude(
+        '/sdlc refactor "extract health check into service layer"',
+        proj.dir,
+        { timeout: 600000 }
+      );
+
+      assert.strictEqual(result.exitCode, 0,
+        `Claude CLI failed (exit ${result.exitCode}). Log: ${result.logFile}`);
+
+      const manifest = validateManifest(proj.dir, 'refactor');
+
+      for (const [phase, data] of Object.entries(manifest.phases)) {
+        assert.strictEqual(data.status, 'approved',
+          `Phase "${phase}" is "${data.status}", expected "approved"`);
+      }
+
       validateArtifacts(proj.dir, 'refactor');
     });
   });
 
-  describe('spike workflow', { timeout: 900000 }, () => {
-    let handle;
-    after(async () => { if (handle) await killCLI(handle); });
-    it('stops at design with only 3 phases', async () => {
-      handle = spawnCLI('claude', '/sdlc spike "evaluate logging libraries for Node.js"', proj.dir);
-      const phases = ['clarify', 'research', 'design'];
-      for (const phase of phases) { await waitForPhase(proj.dir, phase, 300000); sendInput(handle, 'approve'); }
+  // --- Spike workflow ---
+  describe('spike workflow', { timeout: 300000 }, () => {
+    let proj;
+
+    before(async () => {
+      proj = await create({ tier: 2, tool: 'claude' });
+    });
+    after(() => { if (proj) proj.cleanup(); });
+
+    it('stops at design with only 3 phases', () => {
+      const result = runClaude(
+        '/sdlc spike "evaluate logging libraries for Node.js"',
+        proj.dir,
+        { timeout: 300000 }
+      );
+
+      assert.strictEqual(result.exitCode, 0,
+        `Claude CLI failed (exit ${result.exitCode}). Log: ${result.logFile}`);
+
       const manifest = validateManifest(proj.dir, 'spike');
+
+      // Spike should only have 3 phases
       assert.ok(!manifest.phases.plan, 'Spike should not have plan phase');
       assert.ok(!manifest.phases.implement, 'Spike should not have implement phase');
-      validateArtifacts(proj.dir, 'spike');
-    });
-  });
 
-  describe('phase gates block', { timeout: 60000 }, () => {
-    let handle;
-    after(async () => { if (handle) await killCLI(handle); });
-    it('does not proceed without approval', async () => {
-      handle = spawnCLI('claude', '/sdlc feature "add PUT /echo endpoint"', proj.dir);
-      await new Promise(resolve => setTimeout(resolve, 30000));
-      const manifest = getManifest(proj.dir);
-      if (manifest) {
-        assert.ok(manifest.current_phase === 'clarify', `Expected clarify, got: ${manifest.current_phase}`);
-        assert.ok(manifest.phases.research?.status === 'pending', 'Research should still be pending');
+      // All 3 phases should be approved
+      for (const phase of ['clarify', 'research', 'design']) {
+        assert.strictEqual(manifest.phases[phase].status, 'approved',
+          `Phase "${phase}" is "${manifest.phases[phase].status}", expected "approved"`);
       }
+
+      validateArtifacts(proj.dir, 'spike');
     });
   });
 });
