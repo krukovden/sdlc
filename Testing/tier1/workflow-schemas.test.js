@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const SDLC_ROOT = require('../helpers/temp-project').SDLC_ROOT;
+const state = require('../helpers/expected-state');
 const WORKFLOWS_DIR = path.join(SDLC_ROOT, '.agents', 'workflows');
 
 function readWorkflow(name) {
@@ -37,119 +38,51 @@ function extractAgentActivation(content) {
 
 describe('workflow-schemas', () => {
   describe('phase definitions', () => {
-    const fivePhases = ['clarify', 'research', 'design', 'plan', 'implement'];
-
-    it('Feature has 5 phases', () => {
-      const phases = extractPhases(readWorkflow('feature'));
-      assert.deepStrictEqual(phases, fivePhases);
-    });
-
-    it('Bugfix has 5 phases', () => {
-      const phases = extractPhases(readWorkflow('bugfix'));
-      assert.deepStrictEqual(phases, fivePhases);
-    });
-
-    it('Refactor has 5 phases', () => {
-      const phases = extractPhases(readWorkflow('refactor'));
-      assert.deepStrictEqual(phases, fivePhases);
-    });
-
-    it('Spike has 3 phases', () => {
-      const phases = extractPhases(readWorkflow('spike'));
-      assert.deepStrictEqual(phases, ['clarify', 'research', 'design']);
-    });
+    for (const [name, wf] of Object.entries(state.workflows)) {
+      it(`${name} has ${wf.phases.length} phases`, () => {
+        const phases = extractPhases(readWorkflow(name));
+        assert.deepStrictEqual(phases, wf.phases);
+      });
+    }
   });
 
   describe('design artifacts', () => {
-    it('Feature has 6 design artifacts (sorted)', () => {
-      const artifacts = extractDesignArtifacts(readWorkflow('feature')).sort();
-      assert.deepStrictEqual(artifacts, [
-        'api-contracts.md',
-        'architecture-decisions.md',
-        'architecture-diagrams.md',
-        'standard-verifications.md',
-        'storage-model.md',
-        'testing-strategy.md',
-      ]);
-    });
-
-    it('Bugfix has 5 design artifacts (sorted)', () => {
-      const artifacts = extractDesignArtifacts(readWorkflow('bugfix')).sort();
-      assert.deepStrictEqual(artifacts, [
-        'blast-radius.md',
-        'fix-strategy.md',
-        'regression-test-plan.md',
-        'root-cause.md',
-        'standard-verifications.md',
-      ]);
-    });
-
-    it('Refactor has 5 design artifacts (sorted)', () => {
-      const artifacts = extractDesignArtifacts(readWorkflow('refactor')).sort();
-      assert.deepStrictEqual(artifacts, [
-        'before-after.md',
-        'migration-path.md',
-        'standard-verifications.md',
-        'target-architecture.md',
-        'testing-strategy.md',
-      ]);
-    });
-
-    it('Spike has 2 design artifacts (sorted)', () => {
-      const artifacts = extractDesignArtifacts(readWorkflow('spike')).sort();
-      assert.deepStrictEqual(artifacts, [
-        'options-analysis.md',
-        'recommendation.md',
-      ]);
-    });
+    for (const [name, wf] of Object.entries(state.workflows)) {
+      it(`${name} has ${wf.designArtifacts.length} design artifacts (sorted)`, () => {
+        const artifacts = extractDesignArtifacts(readWorkflow(name)).sort();
+        assert.deepStrictEqual(artifacts, wf.designArtifacts);
+      });
+    }
   });
 
   describe('agent activation', () => {
-    it('Feature: 5 agents, all "Always"', () => {
-      const agents = extractAgentActivation(readWorkflow('feature'));
-      assert.strictEqual(agents.length, 5, `Expected 5 agents, got ${agents.length}`);
-      for (const { agent, activation } of agents) {
-        assert.strictEqual(activation, 'Always', `Expected ${agent} to be "Always", got "${activation}"`);
-      }
-    });
-
-    it('Bugfix: 5 agents, all "Always"', () => {
-      const agents = extractAgentActivation(readWorkflow('bugfix'));
-      assert.strictEqual(agents.length, 5, `Expected 5 agents, got ${agents.length}`);
-      for (const { agent, activation } of agents) {
-        assert.strictEqual(activation, 'Always', `Expected ${agent} to be "Always", got "${activation}"`);
-      }
-    });
-
-    it('Refactor: Security is "Optional"', () => {
-      const agents = extractAgentActivation(readWorkflow('refactor'));
-      const security = agents.find(a => a.agent === 'Security');
-      assert.ok(security, 'Security agent row not found');
-      assert.ok(
-        security.activation.includes('Optional'),
-        `Expected Security activation to include "Optional", got "${security.activation}"`,
-      );
-    });
-
-    it('Spike: Lead is "Always", others include "Not activated"', () => {
-      const agents = extractAgentActivation(readWorkflow('spike'));
-      const lead = agents.find(a => a.agent === 'Lead');
-      assert.ok(lead, 'Lead agent row not found');
-      assert.strictEqual(lead.activation, 'Always', `Expected Lead to be "Always", got "${lead.activation}"`);
-
-      const others = agents.filter(a => a.agent !== 'Lead');
-      for (const { agent, activation } of others) {
-        assert.ok(
-          activation.includes('Not activated'),
-          `Expected ${agent} activation to include "Not activated", got "${activation}"`,
+    for (const [name, wf] of Object.entries(state.workflows)) {
+      it(`${name}: agent activation matches parsed state`, () => {
+        const agents = extractAgentActivation(readWorkflow(name));
+        assert.strictEqual(
+          agents.length,
+          wf.agentActivation.length,
+          `Expected ${wf.agentActivation.length} agent activation rows, got ${agents.length}`,
         );
-      }
-    });
+        for (let i = 0; i < agents.length; i++) {
+          assert.strictEqual(
+            agents[i].agent,
+            wf.agentActivation[i].agent,
+            `Row ${i}: agent mismatch`,
+          );
+          assert.strictEqual(
+            agents[i].activation,
+            wf.agentActivation[i].activation,
+            `Row ${i} (${agents[i].agent}): activation mismatch`,
+          );
+        }
+      });
+    }
   });
 
   describe('structural elements', () => {
-    it('All 4 workflows have "## Agent Activation" section', () => {
-      for (const name of ['feature', 'bugfix', 'refactor', 'spike']) {
+    it('All workflows have "## Agent Activation" section', () => {
+      for (const name of Object.keys(state.workflows)) {
         const content = readWorkflow(name);
         assert.ok(
           content.includes('## Agent Activation'),
@@ -158,8 +91,8 @@ describe('workflow-schemas', () => {
       }
     });
 
-    it('All 4 workflows have "docs/workflows/" in content', () => {
-      for (const name of ['feature', 'bugfix', 'refactor', 'spike']) {
+    it('All workflows have "docs/workflows/" in content', () => {
+      for (const name of Object.keys(state.workflows)) {
         const content = readWorkflow(name);
         assert.ok(
           content.includes('docs/workflows/'),
@@ -168,22 +101,21 @@ describe('workflow-schemas', () => {
       }
     });
 
-    it('Feature, bugfix, refactor have "Lead (dispatch) ->" pipeline diagram', () => {
-      for (const name of ['feature', 'bugfix', 'refactor']) {
+    it('Workflows with pipeline diagram have "Lead (dispatch) ->"', () => {
+      for (const [name, wf] of Object.entries(state.workflows)) {
         const content = readWorkflow(name);
-        assert.ok(
-          content.includes('Lead (dispatch) ->'),
-          `${name}.md missing "Lead (dispatch) ->" pipeline diagram`,
-        );
+        if (wf.hasPipeline) {
+          assert.ok(
+            content.includes('Lead (dispatch) ->'),
+            `${name}.md missing "Lead (dispatch) ->" pipeline diagram`,
+          );
+        } else {
+          assert.ok(
+            !content.includes('Lead (dispatch) ->'),
+            `${name}.md should not have "Lead (dispatch) ->" pipeline diagram`,
+          );
+        }
       }
-    });
-
-    it('Spike does NOT have "Lead (dispatch) ->"', () => {
-      const content = readWorkflow('spike');
-      assert.ok(
-        !content.includes('Lead (dispatch) ->'),
-        'spike.md should not have "Lead (dispatch) ->" pipeline diagram',
-      );
     });
   });
 });

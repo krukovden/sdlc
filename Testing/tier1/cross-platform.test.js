@@ -6,20 +6,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { create } = require('../helpers/temp-project');
+const state = require('../helpers/expected-state');
 
-const EXPECTED_AGENTS = ['sdlc-coder', 'sdlc-lead', 'sdlc-reviewer', 'sdlc-security', 'sdlc-tester'];
-
-const EXPECTED_COMMANDS = [
-  'sdlc',
-  'sdlc-clarify',
-  'sdlc-design',
-  'sdlc-implement',
-  'sdlc-plan',
-  'sdlc-research',
-  'sdlc-resume',
-];
-
-const GUIDELINES = ['conventions.md', 'principles.md', 'testing.md', 'error-handling.md'];
+const EXPECTED_AGENTS = state.agentNames;
+const EXPECTED_COMMANDS = state.commandNames;
+const GUIDELINES = state.allGuidelines;
 
 const AGENT_KEYWORDS = {
   'sdlc-lead':     (content) => content.includes('orchestrat'),
@@ -45,7 +36,7 @@ describe('cross-platform', () => {
   // ---------------------------------------------------------------------------
   // Test 1: same 5 agents across all platforms
   // ---------------------------------------------------------------------------
-  it('same 5 agents across all platforms', () => {
+  it(`same ${EXPECTED_AGENTS.length} agents across all platforms`, () => {
     const claudeDir = path.join(proj.dir, '.claude', 'agents');
     const copilotDir = path.join(proj.dir, '.github', 'agents');
     const codexDir = path.join(proj.dir, '.codex', 'agents');
@@ -78,7 +69,7 @@ describe('cross-platform', () => {
   // ---------------------------------------------------------------------------
   // Test 2: same 7 commands across Claude and Copilot
   // ---------------------------------------------------------------------------
-  it('same 7 commands across Claude and Copilot', () => {
+  it(`same ${EXPECTED_COMMANDS.length} commands across Claude and Copilot`, () => {
     const commandsDir = path.join(proj.dir, '.claude', 'commands');
     const promptsDir = path.join(proj.dir, '.github', 'prompts');
 

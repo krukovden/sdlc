@@ -7,9 +7,10 @@ const { execSync } = require('node:child_process');
 
 const { create } = require('../helpers/temp-project.js');
 const { assertFileExists, assertFileContains } = require('../helpers/file-assertions.js');
+const state = require('../helpers/expected-state');
 
-const AGENTS = ['sdlc-lead', 'sdlc-coder', 'sdlc-tester', 'sdlc-reviewer', 'sdlc-security'];
-const COMMANDS = ['sdlc', 'sdlc-clarify', 'sdlc-research', 'sdlc-design', 'sdlc-plan', 'sdlc-implement', 'sdlc-resume'];
+const AGENTS = state.agentNames;
+const COMMANDS = state.commandNames;
 
 describe('init copilot', () => {
   let proj;

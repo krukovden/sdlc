@@ -6,17 +6,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { create } = require('../helpers/temp-project');
+const state = require('../helpers/expected-state');
 
-// Expected guideline assignments per AGENT_META in setup.js
-const AGENT_GUIDELINES = {
-  'sdlc-lead':     { has: ['conventions.md', 'principles.md'],     not: ['testing.md', 'error-handling.md'] },
-  'sdlc-coder':    { has: ['conventions.md', 'principles.md'],     not: ['testing.md', 'error-handling.md'] },
-  'sdlc-tester':   { has: ['testing.md', 'conventions.md'],        not: ['principles.md', 'error-handling.md'] },
-  'sdlc-reviewer': { has: ['principles.md', 'conventions.md'],     not: ['testing.md', 'error-handling.md'] },
-  'sdlc-security': { has: ['error-handling.md', 'conventions.md'], not: ['testing.md', 'principles.md'] },
-};
-
-const ALL_GUIDELINES = ['conventions.md', 'principles.md', 'testing.md', 'error-handling.md'];
+const AGENT_GUIDELINES = state.agentIsolation;
+const ALL_GUIDELINES = state.allGuidelines;
 
 describe('agent isolation', () => {
   let proj;
@@ -59,14 +52,14 @@ describe('agent isolation', () => {
       }
     }
 
-    it('no agent references all 4 guidelines', () => {
+    it(`no agent references all ${ALL_GUIDELINES.length} guidelines`, () => {
       for (const agentName of Object.keys(AGENT_GUIDELINES)) {
         const filePath = path.join(proj.dir, '.claude', 'agents', `${agentName}.md`);
         const content = fs.readFileSync(filePath, 'utf8');
         const count = ALL_GUIDELINES.filter(g => content.includes(g)).length;
         assert.ok(
-          count < 4,
-          `Claude agent "${agentName}" references all 4 guidelines (expected < 4).`,
+          count < ALL_GUIDELINES.length,
+          `Claude agent "${agentName}" references all ${ALL_GUIDELINES.length} guidelines (expected < ${ALL_GUIDELINES.length}).`,
         );
       }
     });
@@ -102,14 +95,14 @@ describe('agent isolation', () => {
       }
     }
 
-    it('no agent references all 4 guidelines', () => {
+    it(`no agent references all ${ALL_GUIDELINES.length} guidelines`, () => {
       for (const agentName of Object.keys(AGENT_GUIDELINES)) {
         const filePath = path.join(proj.dir, '.github', 'agents', `${agentName}.agent.md`);
         const content = fs.readFileSync(filePath, 'utf8');
         const count = ALL_GUIDELINES.filter(g => content.includes(g)).length;
         assert.ok(
-          count < 4,
-          `Copilot agent "${agentName}" references all 4 guidelines (expected < 4).`,
+          count < ALL_GUIDELINES.length,
+          `Copilot agent "${agentName}" references all ${ALL_GUIDELINES.length} guidelines (expected < ${ALL_GUIDELINES.length}).`,
         );
       }
     });
@@ -145,14 +138,14 @@ describe('agent isolation', () => {
       }
     }
 
-    it('no agent references all 4 guidelines', () => {
+    it(`no agent references all ${ALL_GUIDELINES.length} guidelines`, () => {
       for (const agentName of Object.keys(AGENT_GUIDELINES)) {
         const filePath = path.join(proj.dir, '.codex', 'agents', `${agentName}.toml`);
         const content = fs.readFileSync(filePath, 'utf8');
         const count = ALL_GUIDELINES.filter(g => content.includes(g)).length;
         assert.ok(
-          count < 4,
-          `Codex agent "${agentName}" references all 4 guidelines (expected < 4).`,
+          count < ALL_GUIDELINES.length,
+          `Codex agent "${agentName}" references all ${ALL_GUIDELINES.length} guidelines (expected < ${ALL_GUIDELINES.length}).`,
         );
       }
     });

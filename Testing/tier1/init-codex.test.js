@@ -9,6 +9,7 @@ const {
   assertValidTOML,
 } = require('../helpers/file-assertions');
 const { create } = require('../helpers/temp-project');
+const state = require('../helpers/expected-state');
 
 describe('init codex', () => {
   let proj;
@@ -28,7 +29,7 @@ describe('init codex', () => {
     assertFileContains(proj.dir, '.codex/config.toml', '[features]');
   });
 
-  const agents = ['sdlc-lead', 'sdlc-coder', 'sdlc-tester', 'sdlc-reviewer', 'sdlc-security'];
+  const agents = state.agentNames;
 
   for (const name of agents) {
     it(`creates agent TOML for ${name}`, () => {
@@ -48,9 +49,9 @@ describe('init codex', () => {
     assertFileContains(proj.dir, '.codex/agents/sdlc-lead.toml', 'model_reasoning_effort = "high"');
   });
 
-  const nonLeadAgents = ['sdlc-coder', 'sdlc-tester', 'sdlc-reviewer', 'sdlc-security'];
+  const nonReasoningAgents = state.agentNames.filter(n => !state.agentMeta[n].codexReasoning);
 
-  for (const name of nonLeadAgents) {
+  for (const name of nonReasoningAgents) {
     it(`${name} TOML does not have reasoning override`, () => {
       assertFileNotContains(proj.dir, `.codex/agents/${name}.toml`, 'model_reasoning_effort');
     });

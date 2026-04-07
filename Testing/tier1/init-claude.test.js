@@ -7,6 +7,7 @@ const path = require('node:path');
 
 const { assertFileExists, assertFileContains } = require('../helpers/file-assertions');
 const { create, SDLC_ROOT } = require('../helpers/temp-project');
+const state = require('../helpers/expected-state');
 
 describe('init claude', () => {
   let proj;
@@ -37,7 +38,7 @@ describe('init claude', () => {
     assert.ok('defaults' in parsed, 'settings.json missing key: defaults');
   });
 
-  const agents = ['sdlc-lead', 'sdlc-coder', 'sdlc-tester', 'sdlc-reviewer', 'sdlc-security'];
+  const agents = state.agentNames;
 
   for (const name of agents) {
     it(`creates agent file for ${name}`, () => {
@@ -81,15 +82,7 @@ describe('init claude', () => {
     }
   });
 
-  const commands = [
-    'sdlc',
-    'sdlc-clarify',
-    'sdlc-research',
-    'sdlc-design',
-    'sdlc-plan',
-    'sdlc-implement',
-    'sdlc-resume',
-  ];
+  const commands = state.commandNames;
 
   for (const cmd of commands) {
     it(`creates command file for ${cmd}`, () => {
