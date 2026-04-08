@@ -64,12 +64,19 @@ function Invoke-SdlcTool {
             "",
             "You MUST use the Write tool to create files. Do NOT just output text.",
             "",
-            "1. Read the most recent manifest.json from docs/workflows/",
-            "2. Resume from the first phase that is not yet completed",
-            "3. For each remaining phase: read .agents/skills/sdlc-{phase}/SKILL.md and produce its artifacts",
-            "4. Update manifest.json status to `"approved`" after each phase",
+            "CRITICAL REQUIREMENT: After completing EACH phase, you MUST rewrite manifest.json",
+            "and set that phase's status to `"approved`". The test harness reads manifest.json",
+            "to verify completion. If you do not update the status, the test WILL fail.",
             "",
-            "--auto-approve: skip all confirmations, use current branch, no dashboard, no worktree."
+            "1. Read the most recent manifest.json from docs/workflows/",
+            "2. Resume from the first phase that is not yet `"approved`"",
+            "3. For each remaining phase:",
+            "   a. Read .agents/skills/sdlc-{phase}/SKILL.md and produce its artifacts",
+            "   b. IMMEDIATELY rewrite manifest.json setting this phase status to `"approved`"",
+            "",
+            "--auto-approve: skip all confirmations, use current branch, no dashboard, no worktree.",
+            "",
+            "REMINDER: Every phase MUST have status `"approved`" in manifest.json when done."
         ) -join "`n"
     }
     else {
@@ -99,17 +106,23 @@ function Invoke-SdlcTool {
             "",
             "You MUST use the Write tool to create files. Do NOT just output text.",
             "",
+            "CRITICAL REQUIREMENT: After completing EACH phase, you MUST rewrite manifest.json",
+            "and set that phase's status to `"approved`". The test harness reads manifest.json",
+            "to verify completion. If you do not update the status, the test WILL fail.",
+            "",
             "Steps:",
             "1. Read .agents/skills/sdlc/SKILL.md and .agents/workflows/$Workflow.md",
             "2. Create folder docs/workflows/$Workflow/ with a date-slug subfolder",
-            "3. Write manifest.json with all phases",
-            "4. Execute each phase in order: $phaseList",
-            "5. For each phase, read .agents/skills/sdlc-{phase}/SKILL.md and produce its artifacts using the Write tool",
-            "6. Update manifest.json status to `"approved`" after each phase"
+            "3. Write manifest.json with all phases (each status: `"pending`")",
+            "4. For EACH phase in order ($phaseList):",
+            "   a. Read .agents/skills/sdlc-{phase}/SKILL.md",
+            "   b. Produce the phase artifacts using the Write tool",
+            "   c. IMMEDIATELY rewrite manifest.json setting this phase status to `"approved`"",
+            "   d. Do NOT proceed to the next phase until manifest.json is updated"
         )
 
         if ($hasImplement) {
-            $lines += "7. For implement: write code changes and produce 04-implementation-log.md"
+            $lines += "5. For implement: write code changes and produce 04-implementation-log.md"
         }
 
         if ($StopAt) {
@@ -119,6 +132,8 @@ function Invoke-SdlcTool {
 
         $lines += ""
         $lines += "--auto-approve: skip all confirmations, use current branch, no dashboard, no worktree."
+        $lines += ""
+        $lines += "REMINDER: Every phase MUST have status `"approved`" in manifest.json when done."
 
         $prompt = $lines -join "`n"
     }
