@@ -1,13 +1,13 @@
 # Testing/tier2/scenario-1-consistency/run.ps1
+#
+# Orchestrator for Scenario 1: Consistency Test.
+# Calls each tool's run.ps1, then runs cross-tool comparison.
 [CmdletBinding()]
 param()
 
 $ErrorActionPreference = "Stop"
 
-# Load shared library
-. "$PSScriptRoot\..\lib\Setup-Workspace.ps1"
-. "$PSScriptRoot\..\lib\Invoke-Tool.ps1"
-. "$PSScriptRoot\..\lib\Assert-Workflow.ps1"
+# Load shared library (for comparison functions)
 . "$PSScriptRoot\..\lib\Compare-Structure.ps1"
 . "$PSScriptRoot\..\lib\Compare-Content.ps1"
 
@@ -22,30 +22,13 @@ Write-Host " Task:     $($config.task)"
 Write-Host " Tools:    $($config.tools -join ', ')"
 Write-Host "=========================================="
 
-# Phase 1: Run each tool
-$workspaces = @{}
+# Phase 1: Run each tool via its own script
 foreach ($tool in $config.tools) {
-    Write-Host "`n--- $tool ---"
-
-    $workspace = New-ScenarioWorkspace `
-        -ScenarioDir $PSScriptRoot `
-        -Tool $tool `
-        -Workflow $config.workflow
-
-    $result = Invoke-SdlcTool `
-        -Tool $tool `
-        -Workspace $workspace `
-        -Task $config.task `
-        -Workflow $config.workflow `
-        -Timeout $config.timeout
-
-    $phases = $config.phases.$tool
-    Assert-ValidWorkflow `
-        -WorkspaceDir $workspace `
-        -WorkflowType $config.workflow `
-        -Phases $phases
-
-    $workspaces[$tool] = $workspace
+    $toolScript = Join-Path $PSScriptRoot $tool "run.ps1"
+    if (-not (Test-Path $toolScript)) {
+        throw "Tool script not found: $toolScript"
+    }
+    & $toolScript
 }
 
 # Phase 2: Cross-tool structural comparison
