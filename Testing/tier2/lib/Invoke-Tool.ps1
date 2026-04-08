@@ -28,7 +28,26 @@ function Test-ToolAvailable {
         }
         "codex" {
             if (-not (Get-Command "codex" -ErrorAction SilentlyContinue)) {
-                throw "codex CLI not found in PATH"
+                # Codex may be bundled inside VS Code extension — add known locations
+                $knownPaths = @(
+                    "$env:USERPROFILE\.vscode\extensions\openai.chatgpt-*\bin\windows-x86_64"
+                )
+                $found = $false
+                foreach ($pattern in $knownPaths) {
+                    $dirs = Get-Item $pattern -ErrorAction SilentlyContinue
+                    foreach ($dir in $dirs) {
+                        if (Test-Path (Join-Path $dir.FullName "codex.exe")) {
+                            $env:Path += ";$($dir.FullName)"
+                            $found = $true
+                            Write-Host "  Added codex to PATH from: $($dir.FullName)"
+                            break
+                        }
+                    }
+                    if ($found) { break }
+                }
+                if (-not (Get-Command "codex" -ErrorAction SilentlyContinue)) {
+                    throw "codex CLI not found in PATH or known VS Code extension locations"
+                }
             }
         }
     }
