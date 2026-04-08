@@ -35,7 +35,7 @@ function New-ScenarioWorkspace {
     # Run sdlc init
     Push-Location $runDir
     try {
-        & node $binPath init $Tool
+        $null = & node $binPath init $Tool 2>&1
         if ($LASTEXITCODE -ne 0) {
             throw "sdlc init $Tool failed with exit code $LASTEXITCODE"
         }

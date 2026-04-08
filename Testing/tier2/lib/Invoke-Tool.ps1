@@ -57,50 +57,111 @@ function Invoke-SdlcTool {
 
     Test-ToolAvailable -Tool $Tool
 
-    # Build the command string
+    # Build the prompt — headless mode needs an expanded prompt, not a slash command
     if ($Resume) {
-        $command = "/sdlc:resume"
+        $prompt = @(
+            "Resume the active SDLC workflow.",
+            "",
+            "You MUST use the Write tool to create files. Do NOT just output text.",
+            "",
+            "1. Read the most recent manifest.json from docs/workflows/",
+            "2. Resume from the first phase that is not yet completed",
+            "3. For each remaining phase: read .agents/skills/sdlc-{phase}/SKILL.md and produce its artifacts",
+            "4. Update manifest.json status to `"approved`" after each phase",
+            "",
+            "--auto-approve: skip all confirmations, use current branch, no dashboard, no worktree."
+        ) -join "`n"
     }
     else {
         if (-not $Task -or -not $Workflow) {
             throw "-Task and -Workflow are required unless -Resume is set"
         }
-        $command = "/sdlc $Workflow `"$Task`""
+
+        $allPhases = if ($Workflow -eq "spike") {
+            @("clarify", "research", "design")
+        } else {
+            @("clarify", "research", "design", "plan", "implement")
+        }
+
+        # Truncate phases if StopAt is set
+        if ($StopAt) {
+            $stopIdx = $allPhases.IndexOf($StopAt)
+            if ($stopIdx -ge 0) {
+                $allPhases = $allPhases[0..$stopIdx]
+            }
+        }
+
+        $phaseList = $allPhases -join ", "
+        $hasImplement = $allPhases -contains "implement"
+
+        $lines = @(
+            "Execute /sdlc $Workflow --auto-approve `"$Task`"",
+            "",
+            "You MUST use the Write tool to create files. Do NOT just output text.",
+            "",
+            "Steps:",
+            "1. Read .agents/skills/sdlc/SKILL.md and .agents/workflows/$Workflow.md",
+            "2. Create folder docs/workflows/$Workflow/ with a date-slug subfolder",
+            "3. Write manifest.json with all phases",
+            "4. Execute each phase in order: $phaseList",
+            "5. For each phase, read .agents/skills/sdlc-{phase}/SKILL.md and produce its artifacts using the Write tool",
+            "6. Update manifest.json status to `"approved`" after each phase"
+        )
+
+        if ($hasImplement) {
+            $lines += "7. For implement: write code changes and produce 04-implementation-log.md"
+        }
+
+        if ($StopAt) {
+            $lines += ""
+            $lines += "STOP after completing the `"$StopAt`" phase. Do NOT proceed to subsequent phases."
+        }
+
+        $lines += ""
+        $lines += "--auto-approve: skip all confirmations, use current branch, no dashboard, no worktree."
+
+        $prompt = $lines -join "`n"
     }
 
     $logFile = Join-Path $Workspace "tool-run.log"
+    $promptFile = Join-Path $Workspace "prompt.md"
+    Set-Content -Path $promptFile -Value $prompt -Encoding UTF8
     $timeoutSec = [math]::Ceiling($Timeout / 1000)
 
-    Write-Host "  Running $Tool with command: $command"
+    Write-Host "  Running $Tool with prompt for: $(if ($Resume) { 'resume' } else { $Workflow })"
+    Write-Host "  Prompt saved: $promptFile"
     Write-Host "  Timeout: ${timeoutSec}s"
 
-    # Build env with optional SDLC_STOP_AT
-    $env = @{}
+    # Set SDLC_STOP_AT env var if needed
+    $oldStopAt = $env:SDLC_STOP_AT
     if ($StopAt) {
-        $env["SDLC_STOP_AT"] = $StopAt
+        $env:SDLC_STOP_AT = $StopAt
     }
 
     $exitCode = 0
     $stdout = ""
     $stderr = ""
+    $rawOutput = @()
 
+    # Run tool from the workspace directory
+    Push-Location $Workspace
     try {
         switch ($Tool) {
             "claude" {
-                $result = & claude -p $command --dangerously-skip-permissions 2>&1 |
-                    Tee-Object -Variable rawOutput
+                & claude -p $prompt --dangerously-skip-permissions 2>&1 |
+                    Tee-Object -Variable rawOutput | Out-Null
                 $stdout = ($rawOutput | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }) -join "`n"
                 $stderr = ($rawOutput | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }) -join "`n"
             }
             "copilot" {
-                $result = & gh copilot -- -p $command --allow-all --no-auto-update -s 2>&1 |
-                    Tee-Object -Variable rawOutput
+                & gh copilot -- -p $prompt --allow-all --no-auto-update -s 2>&1 |
+                    Tee-Object -Variable rawOutput | Out-Null
                 $stdout = ($rawOutput | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }) -join "`n"
                 $stderr = ($rawOutput | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }) -join "`n"
             }
             "codex" {
-                $result = & codex exec --skip-git-repo-check --sandbox workspace-write --ask-for-approval never --cd $Workspace $command 2>&1 |
-                    Tee-Object -Variable rawOutput
+                & codex exec --skip-git-repo-check --sandbox workspace-write --ask-for-approval never --cd $Workspace $prompt 2>&1 |
+                    Tee-Object -Variable rawOutput | Out-Null
                 $stdout = ($rawOutput | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }) -join "`n"
                 $stderr = ($rawOutput | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }) -join "`n"
             }
@@ -111,11 +172,19 @@ function Invoke-SdlcTool {
         $exitCode = 1
         $stderr = $_.Exception.Message
     }
+    finally {
+        Pop-Location
+        # Restore env var
+        if ($StopAt) {
+            if ($oldStopAt) { $env:SDLC_STOP_AT = $oldStopAt }
+            else { Remove-Item Env:\SDLC_STOP_AT -ErrorAction SilentlyContinue }
+        }
+    }
 
     # Write log
     @(
         "=== $Tool Run ===",
-        "Command: $command",
+        "Prompt: $prompt",
         "Workspace: $Workspace",
         "Exit code: $exitCode",
         "Timeout: ${Timeout}ms",
