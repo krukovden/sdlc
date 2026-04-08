@@ -25,9 +25,10 @@ if (clean) {
   process.exit(0);
 }
 
-// Pass SDLC_TEST_KEEP to child process so cleanup() preserves folders
+// Build env for child process
 const env = { ...process.env };
 if (keep) env.SDLC_TEST_KEEP = '1';
+if (toolFilter) env.SDLC_TEST_TOOL = toolFilter;
 
 function run(cmd, label) {
   console.log(`\n--- ${label} ---\n`);
@@ -47,19 +48,26 @@ if (tier === 'tier1' || tier === 'all') {
 }
 
 if (tier === 'tier2' || tier === 'all') {
-  if (toolFilter) env.SDLC_TEST_TOOL = toolFilter;
-  const files = toolFilter
-    ? `"Testing/tier2/${toolFilter}-workflow.test.js"`
-    : '"Testing/tier2/*.test.js"';
-  const ok = run(`node --test ${files}${reporter}`, `Tier 2: Workflow Execution Tests${toolFilter ? ` (${toolFilter})` : ''}`);
+  const label = toolFilter ? ` (${toolFilter})` : '';
+  const ok = run(
+    `node --test "Testing/tier2/workflows.test.js"${reporter}`,
+    `Tier 2: Workflow Execution Tests${label}`
+  );
   if (!ok) allPassed = false;
 }
 
 // Show runs location if --keep was used
 if (keep && fs.existsSync(runsDir)) {
-  const runs = fs.readdirSync(runsDir).sort();
-  console.log(`\n--- Test artifacts preserved in Testing/runs/ (${runs.length} folders) ---`);
-  for (const r of runs) console.log(`  ${r}`);
+  const listDir = (dir, prefix = '') => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        console.log(`  ${prefix}${entry.name}/`);
+        listDir(path.join(dir, entry.name), prefix + '  ');
+      }
+    }
+  };
+  console.log('\n--- Test artifacts preserved in Testing/runs/ ---');
+  listDir(runsDir);
   console.log('\nRun "node Testing/run.js --clean" to remove them.\n');
 }
 

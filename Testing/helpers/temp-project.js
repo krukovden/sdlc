@@ -2,7 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { execSync } = require('node:child_process');
+const { execFileSync } = require('node:child_process');
 
 const SDLC_ROOT = path.resolve(__dirname, '..', '..');
 const RUNS_DIR = path.join(SDLC_ROOT, 'Testing', 'runs');
@@ -24,20 +24,31 @@ function copyDirSync(src, dest) {
 }
 
 /**
- * Create a test project directory inside Testing/runs/<tier>-<timestamp>-<label>/
- * so test artifacts are easy to find and delete.
+ * Create a test project directory.
+ *
+ * Tier 1: Testing/runs/tier1-<timestamp>-<label>/
+ * Tier 2: Testing/runs/<tool>/<workflow>-<YYYYMMDD-HHmmss>/
  *
  * @param {object} options
- * @param {number} [options.tier=1]   - 1 or 2; tier 2 also copies Testing/fixtures/test-project/
- * @param {string} [options.tool]     - If set, run `node bin/sdlc.js init <tool>` in the temp dir
+ * @param {number} [options.tier=1]     - 1 or 2; tier 2 also copies fixture project
+ * @param {string} [options.tool]       - Platform to init (claude/copilot/codex)
+ * @param {string} [options.workflow]   - Workflow type (feature/bugfix/refactor/spike) — tier2 only
  * @returns {Promise<{ dir: string, workflowsDir: string, cleanup: () => void }>}
  */
-async function create({ tier = 1, tool } = {}) {
-  // 1. Create run dir inside Testing/runs/
-  const timestamp = Date.now();
-  const label = tool || 'base';
-  const dirName = `tier${tier}-${timestamp}-${label}`;
-  const dir = path.join(RUNS_DIR, dirName);
+async function create({ tier = 1, tool, workflow } = {}) {
+  let dir;
+
+  if (tier === 2 && tool && workflow) {
+    // Tier 2 new structure: runs/<tool>/<workflow>-<YYYYMMDD-HHmmss>/
+    const ts = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+    dir = path.join(RUNS_DIR, tool, `${workflow}-${ts}`);
+  } else {
+    // Tier 1 / fallback structure
+    const timestamp = Date.now();
+    const label = tool || 'base';
+    dir = path.join(RUNS_DIR, `tier${tier}-${timestamp}-${label}`);
+  }
+
   fs.mkdirSync(dir, { recursive: true });
 
   // 2. Copy .agents/ from SDLC_ROOT
@@ -65,7 +76,7 @@ async function create({ tier = 1, tool } = {}) {
 
   // 5. If tool is specified: run `node bin/sdlc.js init <tool>` in the temp dir
   if (tool) {
-    execSync(`node bin/sdlc.js init ${tool}`, {
+    execFileSync(process.execPath, ['bin/sdlc.js', 'init', tool], {
       cwd: dir,
       stdio: 'pipe',
       env: {

@@ -37,7 +37,7 @@ function findWorkflowFolder(cwd) {
   return found;
 }
 
-function validateManifest(cwd, workflowType) {
+function validateManifest(cwd, workflowType, { stopAt } = {}) {
   const folder = findWorkflowFolder(cwd);
   assert.ok(folder, 'No workflow folder found');
   const manifestPath = path.join(folder, 'manifest.json');
@@ -47,15 +47,28 @@ function validateManifest(cwd, workflowType) {
   // Check phases exist
   assert.ok(manifest.phases, 'manifest.json missing "phases" object');
 
-  const expectedPhases = workflowType === 'spike'
+  // When stopAt is set, we only require phases up to that point
+  const ALL = ['clarify', 'research', 'design', 'plan', 'implement'];
+  const fullPhases = workflowType === 'spike'
     ? ['clarify', 'research', 'design']
-    : ['clarify', 'research', 'design', 'plan', 'implement'];
+    : ALL;
 
+  let expectedPhases = fullPhases;
+  if (stopAt) {
+    const stopIdx = ALL.indexOf(stopAt);
+    if (stopIdx !== -1) {
+      expectedPhases = fullPhases.filter(p => ALL.indexOf(p) <= stopIdx);
+    }
+  }
+
+  // Manifest may have all phases or just the expected ones — check at minimum the expected ones exist
   const manifestPhases = Object.keys(manifest.phases);
-  assert.deepStrictEqual(manifestPhases.sort(), expectedPhases.sort(),
-    `Expected phases ${expectedPhases.join(',')} but got ${manifestPhases.join(',')}`);
+  for (const phase of expectedPhases) {
+    assert.ok(manifestPhases.includes(phase),
+      `Expected phase "${phase}" not found in manifest. Has: ${manifestPhases.join(', ')}`);
+  }
 
-  // Validate statuses — accept multiple formats (approved, done, completed)
+  // Validate statuses
   for (const [phase, data] of Object.entries(manifest.phases)) {
     const status = typeof data === 'string' ? data : data.status;
     assert.ok(VALID_STATUSES.includes(status),
@@ -68,12 +81,27 @@ function validateManifest(cwd, workflowType) {
 /**
  * Check that all phases are in a completed state.
  */
-function validateAllPhasesCompleted(cwd, workflowType) {
+function validateAllPhasesCompleted(cwd, workflowType, { stopAt } = {}) {
   const folder = findWorkflowFolder(cwd);
   assert.ok(folder, 'No workflow folder found');
   const manifest = JSON.parse(fs.readFileSync(path.join(folder, 'manifest.json'), 'utf8'));
 
-  for (const [phase, data] of Object.entries(manifest.phases)) {
+  const ALL = ['clarify', 'research', 'design', 'plan', 'implement'];
+  const fullPhases = workflowType === 'spike'
+    ? ['clarify', 'research', 'design']
+    : ALL;
+
+  let checkPhases = fullPhases;
+  if (stopAt) {
+    const stopIdx = ALL.indexOf(stopAt);
+    if (stopIdx !== -1) {
+      checkPhases = fullPhases.filter(p => ALL.indexOf(p) <= stopIdx);
+    }
+  }
+
+  for (const phase of checkPhases) {
+    const data = manifest.phases[phase];
+    if (!data) continue;
     const status = typeof data === 'string' ? data : data.status;
     assert.ok(COMPLETED_STATUSES.includes(status),
       `Phase "${phase}" is "${status}", expected one of: ${COMPLETED_STATUSES.join(', ')}`);

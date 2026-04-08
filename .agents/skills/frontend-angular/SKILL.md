@@ -1,6 +1,6 @@
 ---
 name: frontend-angular
-description: Angular 18+ development — standalone components, signals, RxJS, routing, guards, HTTP services, accessibility. Use for any Angular UI work: components, pages, forms, state management, lazy routes, or frontend API integration — even small changes.
+description: "Angular 18+ development — standalone components, signals, RxJS, routing, guards, HTTP services, accessibility. Use for any Angular UI work: components, pages, forms, state management, lazy routes, or frontend API integration — even small changes."
 ---
 
 # Skill: frontend-angular

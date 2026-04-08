@@ -1,6 +1,6 @@
 ---
 name: backend-node
-description: Node.js TypeScript API development — controllers, services, repositories, middleware, Zod validation, error handling. Use for any Node backend work: routes, service logic, DB access, auth middleware, or external integrations — even small changes.
+description: "Node.js TypeScript API development — controllers, services, repositories, middleware, Zod validation, error handling. Use for any Node backend work: routes, service logic, DB access, auth middleware, or external integrations — even small changes."
 ---
 
 # Skill: backend-node
