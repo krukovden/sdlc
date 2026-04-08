@@ -16,4 +16,5 @@ AGENTS.md
 Testing/runs/
 Testing/logs/
 Testing/tmp/
+Testing/tier2/*/Run/
 Testing/fixtures/test-project/node_modules/*
