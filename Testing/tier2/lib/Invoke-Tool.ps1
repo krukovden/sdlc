@@ -194,7 +194,7 @@ function Invoke-SdlcTool {
                 $stderr = ($rawOutput | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }) -join "`n"
             }
             "codex" {
-                & codex exec --skip-git-repo-check --sandbox workspace-write --ask-for-approval never --cd $Workspace $prompt 2>&1 |
+                & codex exec --skip-git-repo-check --full-auto --cd $Workspace $prompt 2>&1 |
                     Tee-Object -Variable rawOutput | Out-Null
                 $stdout = ($rawOutput | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }) -join "`n"
                 $stderr = ($rawOutput | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }) -join "`n"
