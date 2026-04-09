@@ -10,9 +10,5 @@ docs/*
 .claude/
 .github/
 .codex/
-
-# Testing runtime artifacts
-Testing/runs/
-Testing/logs/
-Testing/tmp/
-Testing/tier2/*/Run/
+AGENTS.md
+.gitignore
