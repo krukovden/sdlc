@@ -141,24 +141,24 @@ const AGENT_META = {
     codexReasoning: 'high',
   },
   'sdlc-coder': {
-    description: 'SDLC implementation agent — writes code based on design artifacts and task specs. Does not write tests, review code, or make architectural decisions. Dispatched by Lead agent.',
+    description: 'SDLC implementation agent — writes code based on design artifacts and task specs. In autonomous mode, spawns Tester to continue the pipeline. Does not write tests, review code, or make architectural decisions.',
     guidelines: ['conventions.md', 'principles.md'],
-    extra: 'Your task will be provided by the Lead agent. Focus only on implementation.\nDo NOT write tests, review code, or make architectural decisions.',
+    extra: 'Your task will be provided by the Lead agent or another agent in the pipeline. Focus only on implementation.\nDo NOT write tests, review code, or make architectural decisions.\n\nIn autonomous pipeline mode (pipeline_mode: autonomous), after implementing, spawn the Tester agent as a subagent and pass the pipeline context forward.\nWhen spawned for a retry fix (retry_fix: true), just fix the issue and return — do NOT spawn Tester.',
   },
   'sdlc-tester': {
-    description: 'SDLC testing agent — writes tests and verifies they pass. Reads testing-strategy.md or regression-test-plan.md per workflow type. Does not modify implementation code. Dispatched by Lead agent.',
+    description: 'SDLC testing agent — writes tests and verifies they pass. In autonomous mode, spawns Coder for retry fixes and Reviewer to continue the pipeline. Does not modify implementation code.',
     guidelines: ['testing.md', 'conventions.md'],
-    extra: 'Your task will be provided by the Lead agent. Focus only on writing and running tests.\nDo NOT modify implementation code.',
+    extra: 'Your task will be provided by the Lead agent or the Coder agent (in autonomous mode). Focus only on writing and running tests.\nDo NOT modify implementation code.\n\nIn autonomous pipeline mode (pipeline_mode: autonomous), if tests fail spawn Coder for retry (max 3). Once tests pass, spawn the Reviewer agent as a subagent and pass the pipeline context forward.',
   },
   'sdlc-reviewer': {
-    description: 'SDLC code review agent — reviews code quality, SOLID/KISS/YAGNI/DRY compliance, and domain-specific patterns. Read-only — produces verdict only, does not modify code. Dispatched by Lead agent.',
+    description: 'SDLC code review agent — reviews code quality, SOLID/KISS/YAGNI/DRY compliance, and domain-specific patterns. In autonomous mode, spawns Coder for retry fixes and Security to continue the pipeline. Read-only — produces verdict only, does not modify code.',
     guidelines: ['principles.md', 'conventions.md'],
-    extra: 'Your task will be provided by the Lead agent. Review code and produce a verdict.\nDo NOT modify any code. Output: PASS / NEEDS CHANGES / FAIL.',
+    extra: 'Your task will be provided by the Lead agent or the Tester agent (in autonomous mode). Review code and produce a verdict.\nDo NOT modify any code. Output: PASS / NEEDS CHANGES / FAIL.\n\nIn autonomous pipeline mode (pipeline_mode: autonomous), if verdict is NEEDS CHANGES spawn Coder for retry (max 3). Once PASS, spawn the Security agent as a subagent and pass the pipeline context forward.',
   },
   'sdlc-security': {
-    description: 'SDLC security analysis agent — checks for injection risks, auth/authz issues, secrets exposure, input validation gaps, and sensitive data logging. Read-only — produces assessment only. Dispatched by Lead agent.',
+    description: 'SDLC security analysis agent — checks for injection risks, auth/authz issues, secrets exposure, input validation gaps, and sensitive data logging. In autonomous mode, spawns Coder for retry fixes. Terminal node — returns completed pipeline context. Read-only — produces assessment only.',
     guidelines: ['error-handling.md', 'conventions.md'],
-    extra: 'Your task will be provided by the Lead agent. Analyze code for security issues.\nDo NOT modify any code. Output: PASS / SECURITY ISSUE.',
+    extra: 'Your task will be provided by the Lead agent or the Reviewer agent (in autonomous mode). Analyze code for security issues.\nDo NOT modify any code. Output: PASS / SECURITY ISSUE.\n\nIn autonomous pipeline mode (pipeline_mode: autonomous), if assessment is SECURITY ISSUE spawn Coder for retry (max 3). Once PASS, return the completed pipeline context. You are the terminal node — do NOT spawn any further agents.',
   },
 };
 
