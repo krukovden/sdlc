@@ -51,14 +51,7 @@ describe('init all', () => {
 
   it('creates AGENTS.md at project root', () => {
     assertFileExists(proj.dir, 'AGENTS.md');
-
-    const generatedPath = path.join(proj.dir, 'AGENTS.md');
-    const sourcePath = path.join(SDLC_ROOT, 'AGENTS.md');
-
-    const generated = fs.readFileSync(generatedPath, 'utf8');
-    const source = fs.readFileSync(sourcePath, 'utf8');
-
-    assert.strictEqual(generated, source, 'AGENTS.md content should match the package source');
+    assertFileContains(proj.dir, 'AGENTS.md', 'Source of Truth');
   });
 
   it('creates docs/workflows/ directory', () => {

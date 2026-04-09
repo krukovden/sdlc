@@ -10,7 +10,6 @@ docs/*
 .claude/
 .github/
 .codex/
-AGENTS.md
 
 # Testing runtime artifacts
 Testing/runs/

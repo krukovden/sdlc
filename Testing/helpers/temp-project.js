@@ -40,12 +40,13 @@ async function create({ tool } = {}) {
 
   fs.mkdirSync(dir, { recursive: true });
 
-  // Copy .agents/, setup.js, bin/, AGENTS.md, package.json from SDLC_ROOT
+  // Copy .agents/, setup.js, bin/, package.json, AGENTS.md from SDLC_ROOT
+  // These are the package files that setup.js reads during init
   copyDirSync(path.join(SDLC_ROOT, '.agents'), path.join(dir, '.agents'));
   fs.copyFileSync(path.join(SDLC_ROOT, 'setup.js'), path.join(dir, 'setup.js'));
   copyDirSync(path.join(SDLC_ROOT, 'bin'), path.join(dir, 'bin'));
-  fs.copyFileSync(path.join(SDLC_ROOT, 'AGENTS.md'), path.join(dir, 'AGENTS.md'));
   fs.copyFileSync(path.join(SDLC_ROOT, 'package.json'), path.join(dir, 'package.json'));
+  fs.copyFileSync(path.join(SDLC_ROOT, 'AGENTS.md'), path.join(dir, 'AGENTS.md'));
 
   // 5. If tool is specified: run `node bin/sdlc.js init <tool>` in the temp dir
   if (tool) {
