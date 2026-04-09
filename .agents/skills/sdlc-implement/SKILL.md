@@ -48,9 +48,81 @@ For each task in `03-plan.md`, dispatch agents in this order:
 | Bugfix | Coder → Tester → Reviewer → Security → Lead (compliance check) |
 | Refactor | Coder → Tester → Reviewer → Security (if activated) → Lead (compliance check) |
 
+## Task Execution Mode
+
+Before dispatching each task, check its `mode` field from `03-plan.md`:
+
+### Autonomous mode (`mode: autonomous`)
+
+Dispatch the Coder agent **once** with the full autonomous pipeline instruction. The Coder will chain through Tester → Reviewer → Security and return the completed pipeline context.
+
+**Dispatch prompt for autonomous mode:**
+
+```
+You are the Coder agent for the SDLC workflow.
+pipeline_mode: autonomous
+
+## Pipeline Context
+{
+  "task": {
+    "id": {N},
+    "title": "{task title}",
+    "skill": "{domain-skill}",
+    "mode": "autonomous"
+  }
+}
+
+## Your Task
+{task description from 03-plan.md}
+
+## Design Artifacts
+Read these files for context:
+- {path to relevant design artifacts}
+
+## Domain Skill (PRIMARY)
+Read: .agents/skills/{domain-skill}/SKILL.md
+
+## Supplementary Skills (MERGED)
+{supplementary skill paths, if any}
+
+## Testing Artifact
+{path to testing-strategy.md or regression-test-plan.md}
+
+## Verifications Checklist
+{path to standard-verifications.md}
+
+## API Contracts
+{path to api-contracts.md, if exists}
+
+## Instructions
+1. Implement the task
+2. Append your results to the pipeline context
+3. Spawn the Tester agent as a subagent, passing the pipeline context and all artifact paths above
+4. The Tester will chain through Reviewer → Security
+5. Return the completed pipeline context
+```
+
+**After the pipeline returns:**
+
+1. Parse the pipeline context from the Coder's response
+2. Check if any agent has status `FAILED`:
+   - If yes, this is a pipeline failure — handle as a failed task (update manifest, present Failed Task Stop-Gate)
+3. If all agents passed, run the Lead compliance check against design artifacts
+4. If compliant, commit. If deviation found, handle per existing deviation logic.
+5. Update `04-implementation-log.md` with results from the pipeline context
+
+### Mediated mode (`mode: mediated`)
+
+Follow the existing dispatch pattern — Lead dispatches each agent individually and mediates every handoff. This is the current behavior, unchanged.
+
+Specifically: dispatch Coder → check result → dispatch Tester → check result → retry if needed → dispatch Reviewer → check result → retry if needed → dispatch Security → check result → retry if needed → compliance check → commit.
+
 ## Agent Context Isolation
 
 Each agent receives **only** what it needs. Construct precise prompts — regardless of dispatch mode.
+
+In **mediated mode**, Lead constructs each agent's prompt individually using the sections below.
+In **autonomous mode**, Lead constructs only the Coder's initial prompt (using the autonomous dispatch template above). Subsequent agents receive context via the pipeline context object passed through the chain.
 
 ### Coder receives:
 - Single task from `03-plan.md` (not the full plan)
@@ -80,6 +152,8 @@ Each agent receives **only** what it needs. Construct precise prompts — regard
 ## Agent Dispatch Template
 
 When dispatching each agent, construct a prompt that includes:
+
+**Note:** This template applies to **mediated mode** dispatch. For **autonomous mode**, use the autonomous dispatch template in the "Task Execution Mode" section above.
 
 ```
 You are the {Agent} agent for the SDLC workflow.
@@ -113,6 +187,8 @@ See `sdlc-lead.md` Skill Resolution section for how to identify supplementary sk
 ## Retry Logic
 
 If an agent reports issues:
+
+**Note:** This retry logic applies to **mediated mode** only. In **autonomous mode**, each agent handles its own retry loop with Coder (max 3 cycles per agent). Lead only sees the final result.
 
 ### Tester reports test failures:
 1. Dispatch Coder with the failure details and ask to fix

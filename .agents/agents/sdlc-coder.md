@@ -35,6 +35,43 @@ You write implementation code. Nothing else.
 - **NO `Co-Authored-By` footer**
 - Stage specific files — never use `git add -A` or `git add .`
 
+## Autonomous Pipeline Mode
+
+When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_context` object:
+
+1. Complete your implementation work as normal (steps 1-6 from "How to Work" above)
+2. Append your results to the pipeline context:
+   ```
+   coder:
+     status: DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
+     files_changed: [list of files created/modified]
+     summary: brief description of what was implemented
+   ```
+3. Spawn the **Tester** agent as a subagent using the `Agent` tool with this prompt structure:
+   ```
+   You are the Tester agent for the SDLC workflow.
+   pipeline_mode: autonomous
+   pipeline_context: {pass the full updated pipeline context}
+
+   ## Your Task
+   {task description from the plan}
+
+   ## Design Artifacts
+   {testing artifact path — testing-strategy.md or regression-test-plan.md}
+
+   ## Domain Skill
+   {domain skill path}
+
+   ## What Was Done Before You
+   {your coder results summary}
+   ```
+4. Wait for the Tester's response — it will return the completed pipeline context (which has chained through Reviewer → Security)
+5. Return the full pipeline context to your caller
+
+**When spawned for a retry fix** (your dispatch prompt says `retry_fix: true`):
+- Fix the specific issue described in the prompt
+- Do NOT spawn Tester — just fix and return your status
+
 ## Output
 
 When done, report:

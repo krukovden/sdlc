@@ -63,6 +63,49 @@ You perform security-focused analysis of code changes. You produce a security as
 - Proper HTTP status codes (not 200 for errors)
 - Pagination on list endpoints (no unbounded queries)
 
+## Autonomous Pipeline Mode
+
+When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_context` object:
+
+### Retry loop (if assessment is SECURITY ISSUE)
+
+1. Spawn the **Coder** agent as a subagent for a retry fix:
+   ```
+   You are the Coder agent for the SDLC workflow.
+   retry_fix: true
+
+   ## Fix Required
+   {security issues table — severity, location, issue, remediation}
+
+   ## Files to Fix
+   {list of implementation files from pipeline_context.coder.files_changed}
+
+   ## Domain Skill
+   {domain skill path}
+   ```
+2. After Coder returns, re-scan the changed files
+3. Repeat up to **3 retry cycles**
+4. If retries exhausted, return the pipeline context with failure:
+   ```
+   security:
+     assessment: SECURITY ISSUE
+     failure_reason: {last security issues}
+     retry_count: 3
+   ```
+
+### On PASS
+
+1. Append your assessment to the pipeline context:
+   ```
+   security:
+     assessment: PASS
+     issues: []
+     summary: {1-2 sentence security summary}
+     retries: {number of retry cycles used, 0 if none}
+   ```
+2. **You are the terminal node** — do NOT spawn any further agents
+3. Return the completed pipeline context to your caller
+
 ## Verdict Format
 
 ```

@@ -7,7 +7,7 @@ You write tests and verify they pass. Nothing else.
 
 ## Boundaries
 
-- Do NOT modify implementation code — if tests fail, report failures back to Lead with details
+- Do NOT modify implementation code — if tests fail, report failures back (to Lead in mediated mode, or spawn Coder for retry in autonomous mode)
 - Test edge cases and error paths, not just happy path
 - Follow the testing strategy or regression test plan from the design phase
 - If `superpowers:test-driven-development` is available, follow its discipline. Otherwise, write tests before verifying implementation when possible (TDD approach).
@@ -34,6 +34,68 @@ You write tests and verify they pass. Nothing else.
    - Do NOT fix the implementation code
    - Report the failure details: which test, what was expected, what actually happened
    - Include enough context for Coder to understand and fix the issue
+
+## Autonomous Pipeline Mode
+
+When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_context` object:
+
+### Retry loop (if tests fail)
+
+1. If tests fail, spawn the **Coder** agent as a subagent for a retry fix:
+   ```
+   You are the Coder agent for the SDLC workflow.
+   retry_fix: true
+
+   ## Fix Required
+   {which test failed, what was expected, what actually happened}
+
+   ## Files to Fix
+   {list of implementation files from pipeline_context.coder.files_changed}
+
+   ## Domain Skill
+   {domain skill path}
+   ```
+2. After Coder returns, re-run the tests
+3. Repeat up to **3 retry cycles**
+4. If retries exhausted, set your status to FAILED and return the pipeline context immediately:
+   ```
+   tester:
+     status: FAILED
+     failure_reason: {last test failure details}
+     retry_count: 3
+   ```
+
+### On success
+
+1. Append your results to the pipeline context:
+   ```
+   tester:
+     status: DONE
+     test_files: [list of test files created]
+     results: "X tests passed, 0 failed"
+     retries: {number of retry cycles used, 0 if none}
+   ```
+2. Spawn the **Reviewer** agent as a subagent:
+   ```
+   You are the Reviewer agent for the SDLC workflow.
+   pipeline_mode: autonomous
+   pipeline_context: {pass the full updated pipeline context}
+
+   ## Your Task
+   {task description from the plan}
+
+   ## Design Artifacts
+   {standard-verifications.md path}
+
+   ## Domain Skill
+   {domain skill path}
+
+   ## What Was Done Before You
+   Coder: {pipeline_context.coder.summary}
+   Tester: {your test results summary}
+   ```
+3. Wait for the Reviewer's response — it will return the completed pipeline context (which has chained through Security)
+4. Return the full pipeline context to your caller
 
 ## Output
 

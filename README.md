@@ -30,13 +30,13 @@ You approve after each phase. Tasks run continuously without stopping between th
 ## Quick Start
 
 ```bash
-npx @krukovden/sdlc
+npx github:krukovden/sdlc
 
 # Setup asks which tool you use (Claude Code / Copilot / Codex / All)
 # and generates platform-specific config files from .agents/
 
 # Or specify the platform directly:
-npx @krukovden/sdlc claude
+npx github:krukovden/sdlc claude
 
 # Then start a workflow:
 /sdlc feature "add user notifications"
@@ -133,7 +133,7 @@ The system works from any AI coding tool. `.agents/` is the single source of tru
              Claude Code   Copilot     Codex
 ```
 
-Run `npx @krukovden/sdlc` once per project — it generates the right config for your tool.
+Run `npx github:krukovden/sdlc` once per project — it generates the right config for your tool.
 
 ---
 
@@ -177,8 +177,8 @@ Skills are domain knowledge that agents load on demand:
 
 | Command | What it does |
 |---------|-------------|
-| `npx @krukovden/sdlc` | Interactive setup — asks which tool, generates config |
-| `npx @krukovden/sdlc claude` | Generate Claude Code config only (also: `copilot`, `codex`, `all`) |
+| `npx github:krukovden/sdlc` | Interactive setup — asks which tool, generates config |
+| `npx github:krukovden/sdlc claude` | Generate Claude Code config only (also: `copilot`, `codex`, `all`) |
 
 ### Full Workflow
 
@@ -239,7 +239,7 @@ Pick up where you (or another tool) left off. The system scans `docs/workflows/`
 
 | Action | Claude Code | Copilot (VS Code) | Codex |
 |--------|------------|-------------------|-------|
-| **Setup** | `npx @krukovden/sdlc` | `npx @krukovden/sdlc` | `npx @krukovden/sdlc` |
+| **Setup** | `npx github:krukovden/sdlc` | `npx github:krukovden/sdlc` | `npx github:krukovden/sdlc` |
 | **Full pipeline** | `/sdlc feature "..."` | `/sdlc feature "..."` | `$sdlc feature "..."` |
 | **Clarify only** | `/sdlc:clarify "..."` | `/sdlc:clarify "..."` | `$sdlc-clarify "..."` |
 | **Research only** | `/sdlc:research` | `/sdlc:research` | `$sdlc-research` |
@@ -281,7 +281,7 @@ codex exec --skip-git-repo-check --full-auto '/sdlc:resume --auto-approve'
 
 ```bash
 # First time setup
-npx @krukovden/sdlc
+npx github:krukovden/sdlc
 
 # Start a feature
 /sdlc feature "add email notifications for order updates"
