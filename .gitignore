@@ -11,4 +11,9 @@ docs/*
 .github/
 .codex/
 AGENTS.md
-.gitignore
+
+# Testing runtime artifacts
+Testing/runs/
+Testing/logs/
+Testing/tmp/
+Testing/tier2/*/Run/
