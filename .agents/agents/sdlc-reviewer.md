@@ -66,6 +66,69 @@ You review code quality, patterns, and principles compliance. You produce a verd
 ### 5. Standard Verifications
 - Walk through the `standard-verifications.md` checklist item by item
 
+## Autonomous Pipeline Mode
+
+When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_context` object:
+
+### Retry loop (if verdict is NEEDS CHANGES)
+
+1. Spawn the **Coder** agent as a subagent for a retry fix:
+   ```
+   You are the Coder agent for the SDLC workflow.
+   retry_fix: true
+
+   ## Fix Required
+   {issues table — severity, location, issue, recommendation}
+
+   ## Files to Fix
+   {list of implementation files from pipeline_context.coder.files_changed}
+
+   ## Domain Skill
+   {domain skill path}
+   ```
+2. After Coder returns, re-review the changed files
+3. Repeat up to **3 retry cycles**
+4. If retries exhausted, set your verdict to FAIL and return the pipeline context immediately:
+   ```
+   reviewer:
+     verdict: FAIL
+     failure_reason: {last review issues}
+     retry_count: 3
+   ```
+
+### On PASS
+
+1. Append your verdict to the pipeline context:
+   ```
+   reviewer:
+     verdict: PASS
+     issues: []
+     summary: {1-2 sentence review summary}
+     retries: {number of retry cycles used, 0 if none}
+   ```
+2. Spawn the **Security** agent as a subagent:
+   ```
+   You are the Security agent for the SDLC workflow.
+   pipeline_mode: autonomous
+   pipeline_context: {pass the full updated pipeline context}
+
+   ## Your Task
+   {task description from the plan}
+
+   ## Design Artifacts
+   {api-contracts.md path, if exists}
+
+   ## Domain Skill
+   {domain skill path}
+
+   ## What Was Done Before You
+   Coder: {pipeline_context.coder.summary}
+   Tester: {pipeline_context.tester.results}
+   Reviewer: PASS — {your summary}
+   ```
+3. Wait for Security's response — it will return the completed pipeline context
+4. Return the full pipeline context to your caller
+
 ## Verdict Format
 
 ```
