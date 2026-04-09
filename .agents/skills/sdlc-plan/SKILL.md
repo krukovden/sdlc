@@ -46,6 +46,7 @@ Each task in `03-plan.md` must follow this format:
 ```markdown
 ### Task {N}: {title}
 - **Domain skill**: {backend-node | frontend-angular | backend-csharp | devops | architect}
+- **Mode**: {autonomous | mediated (reason)}
 - **Depends on**: {Task N | none}
 - **Acceptance criteria**:
   - {criterion 1}
@@ -69,6 +70,27 @@ State the decision and rationale in the plan and at the stop-gate. User can over
 
 A single workflow may span multiple domains (e.g., "Angular frontend + Node API"). Each task specifies its own domain skill independently. The domain_skill is per-task, not per-workflow.
 
+## Execution Mode Assignment
+
+Each task must be assigned an execution mode:
+
+- **`autonomous`** (default) — agents chain directly (Coder → Tester → Reviewer → Security) without Lead mediating each handoff. Lead dispatches once and reviews the final result.
+- **`mediated`** — Lead mediates every agent handoff (current behavior). Use for high-risk tasks.
+
+### Risk criteria for `mediated`
+
+Assign `mediated` when ANY of these apply:
+
+- Task touches authentication or authorization logic
+- Task crosses service boundaries (frontend ↔ backend, service ↔ service)
+- Task modifies shared infrastructure, CI/CD pipelines, or deployment config
+- Task changes data models that require migrations
+- Task modifies security-sensitive code (encryption, secrets handling, input validation at trust boundaries)
+
+All other tasks default to `autonomous`. State the reason when assigning `mediated` (e.g., `mediated (touches auth)`).
+
+The user can override any task's mode at the plan approval gate.
+
 ## Dependency Analysis
 
 Every task MUST declare its dependencies explicitly. Follow these rules:
@@ -83,13 +105,13 @@ Every task MUST declare its dependencies explicitly. Follow these rules:
 
 In the Task Summary table, use explicit references:
 
-| Task | Title | Domain Skill | Depends On | Can Parallel? |
-|------|-------|-------------|------------|:------------:|
-| 1 | Create domain entities | backend-node | — | — |
-| 2 | Create repository layer | backend-node | Task 1 | No |
-| 3 | Create service layer | backend-node | Task 2 | No |
-| 4 | Add API validation schemas | backend-node | Task 1 | Yes (with 2,3) |
-| 5 | Create Angular component | frontend-angular | Task 3 | No |
+| Task | Title | Domain Skill | Mode | Depends On | Can Parallel? |
+|------|-------|-------------|------|------------|:------------:|
+| 1 | Create domain entities | backend-node | autonomous | — | — |
+| 2 | Create repository layer | backend-node | autonomous | Task 1 | No |
+| 3 | Create service layer | backend-node | autonomous | Task 2 | No |
+| 4 | Add API validation schemas | backend-node | autonomous | Task 1 | Yes (with 2,3) |
+| 5 | Create Angular component | frontend-angular | autonomous | Task 3 | No |
 
 ### Dependency Validation Checklist
 
@@ -121,10 +143,10 @@ Write `03-plan.md` to the workflow folder:
 {1-2 sentences describing what will be implemented}
 
 ## Task Summary
-| Task | Title | Domain Skill | Depends On | Can Parallel? |
-|------|-------|-------------|------------|:------------:|
-| 1 | {title} | {skill} | — | — |
-| 2 | {title} | {skill} | Task 1 | No |
+| Task | Title | Domain Skill | Mode | Depends On | Can Parallel? |
+|------|-------|-------------|------|------------|:------------:|
+| 1 | {title} | {skill} | {mode} | — | — |
+| 2 | {title} | {skill} | {mode} | Task 1 | No |
 
 ## Security Agent
 {Activated / Skipped — rationale (Refactor only)}
