@@ -9,6 +9,19 @@ description: "SDLC workflow orchestrator — routes /sdlc commands to the correc
 
 You orchestrate the full SDLC workflow. You determine the workflow type, create the workspace, and drive phase-by-phase execution with user approval gates between each phase.
 
+## Auto-Approve Mode
+
+When the command includes `--auto-approve` (e.g., `/sdlc feature --auto-approve "description"`), run the entire workflow without any interactive stops:
+
+- **Skip** workflow type confirmation — use detected/explicit type directly
+- **Skip** git isolation question — use current branch
+- **Skip** dashboard question — disable dashboard
+- **Skip** all phase stop-gates — auto-approve each phase immediately after artifact is produced
+- **Still produce** all artifacts and update manifest normally
+- **Still follow** the full agent pipeline for implementation tasks
+
+Parse and remove `--auto-approve` from the arguments before processing the description.
+
 ## Workflow Type Detection
 
 ### 1. Explicit
@@ -23,7 +36,7 @@ If the user runs `/sdlc "description"` without a type, analyze the description h
 4. Otherwise → `feature` (default)
 
 ### 3. Confirmed
-Always confirm the detected type before proceeding: _"This looks like a **{type}**. Correct?"_
+Unless `--auto-approve` is set, always confirm the detected type before proceeding: _"This looks like a **{type}**. Correct?"_
 
 ## Phase Sequencing
 
@@ -45,12 +58,14 @@ Use detection logic above.
 Create a short slug from the task description (e.g., "Add user notification preferences" → `notification-prefs`).
 
 ### 3. Ask about git isolation
+Unless `--auto-approve` is set (use current branch):
 > "Create isolated worktree or work on current branch?"
 
 - **Worktree**: If `superpowers:using-git-worktrees` is available, invoke it. Otherwise, create a feature branch and git worktree manually.
 - **Current branch**: Work directly on the current branch
 
 ### 4. Ask about HTML dashboard
+Unless `--auto-approve` is set (skip dashboard):
 > "Launch live HTML dashboard in browser? (Y/n)"
 
 Default is **yes**. If user confirms (or doesn't respond / presses enter):
@@ -141,7 +156,7 @@ Pass the workflow type and manifest path to each phase skill.
 
 ## Phase Transition
 
-After a phase is approved by the user:
+After a phase is approved (by the user, or automatically if `--auto-approve`):
 1. Update manifest: set current phase status to `approved` with `completed_at` timestamp
 2. Advance `current_phase` to the next phase
 3. Set next phase status to `in_progress`
@@ -150,18 +165,22 @@ After a phase is approved by the user:
 ## Resume Mode
 
 When invoked with `mode=resume`:
-1. Read `manifest.json` from the most recent workflow folder in `docs/workflows/` (or user-specified path)
-2. If a phase argument is provided, resume from that phase
-3. If no phase specified, resume from `manifest.current_phase`
-4. Re-read all prior artifacts (they may have been manually edited between sessions)
-5. If artifacts were edited since the phase that produced them, note at stop-gate
-6. Restore worktree context if `isolation: "worktree"` and the worktree still exists
-7. If no active workflow found, tell the user and suggest `/sdlc` to start a new one
+1. Scan all `manifest.json` files under `docs/workflows/`
+2. Filter to workflows that are **not complete** (any phase without status `approved`)
+3. If **one** incomplete workflow found — resume it automatically
+4. If **multiple** incomplete workflows found — list them and ask the user which one to resume (unless `--auto-approve` is set, in which case pick the most recent)
+5. If a user-specified path is provided, use that directly (skip scanning)
+6. If a phase argument is provided, resume from that phase
+7. If no phase specified, resume from `manifest.current_phase`
+8. Re-read all prior artifacts (they may have been manually edited between sessions)
+9. If artifacts were edited since the phase that produced them, note at stop-gate
+10. Restore worktree context if `isolation: "worktree"` and the worktree still exists
+11. If no active workflow found, tell the user and suggest `/sdlc` to start a new one
 
 ## Single-Phase Mode
 
 When invoked with a specific phase (e.g., `phase=research`):
-1. Look for an active workflow in `docs/workflows/` (most recent manifest)
+1. Scan `docs/workflows/` for incomplete workflows (same logic as Resume Mode steps 1-5)
 2. If found, run only that phase within the existing workflow
 3. If no active workflow, create a new one with the phase as the starting point
 4. Apply artifact gating — check that prerequisite artifacts exist (warn if missing, don't block)

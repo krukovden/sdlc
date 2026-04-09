@@ -1,6 +1,6 @@
 ---
 name: backend-csharp
-description: C# Azure Functions — thin handlers, application services, domain logic, EF Core, Azure SDK integrations. Use for any C# work: Azure Functions, services, domain models, data access, or Service Bus/Blob/Key Vault calls — even small changes.
+description: "C# Azure Functions — thin handlers, application services, domain logic, EF Core, Azure SDK integrations. Use for any C# work: Azure Functions, services, domain models, data access, or Service Bus/Blob/Key Vault calls — even small changes."
 ---
 
 # Skill: backend-csharp

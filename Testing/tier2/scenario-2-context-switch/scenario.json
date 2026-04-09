@@ -1,0 +1,12 @@
+{
+  "name": "Context Switching Test",
+  "description": "Three tools share one workspace — each picks up where the previous stopped",
+  "workflow": "feature",
+  "task": "add POST /echo endpoint that returns the request body",
+  "steps": [
+    { "tool": "claude",  "phases": ["clarify", "research"], "stopAt": "research" },
+    { "tool": "copilot", "phases": ["design"],              "stopAt": "design"   },
+    { "tool": "codex",   "phases": ["plan", "implement"]                         }
+  ],
+  "timeout": 900000
+}

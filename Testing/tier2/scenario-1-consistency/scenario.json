@@ -1,0 +1,13 @@
+{
+  "name": "Consistency Test",
+  "description": "Same command, all tools, compare artifacts",
+  "workflow": "feature",
+  "task": "add POST /echo endpoint that returns the request body",
+  "tools": ["claude", "copilot", "codex"],
+  "phases": {
+    "claude": ["clarify", "research", "design", "plan", "implement"],
+    "copilot": ["clarify", "research", "design", "plan", "implement"],
+    "codex": ["clarify", "research", "design", "plan", "implement"]
+  },
+  "timeout": 900000
+}
