@@ -5,6 +5,31 @@ description: "SDLC workflow orchestrator — routes /sdlc commands to the correc
 
 # SDLC Master Orchestrator
 
+## Iron Law — Initialization and Stop-Gates Are Mandatory
+
+**NEVER skip initialization.** Before ANY phase work begins, you MUST:
+1. Confirm workflow type with user
+2. Ask about git isolation (worktree or current branch)
+3. Ask about HTML dashboard
+4. Create `docs/workflows/{type}/{date}-{slug}/manifest.json`
+5. Generate `dashboard.html` (if accepted)
+6. Start the local HTTP server (if dashboard enabled)
+
+**NEVER auto-advance phases.** After EVERY phase, you MUST:
+1. Present the stop-gate summary to the user
+2. Wait for explicit approval before proceeding
+3. The ONLY exception is `--auto-approve` flag — and even then, still produce all artifacts and update manifest
+
+**Rationalization table — these are NOT valid reasons to skip:**
+
+| Excuse | Why it's wrong |
+|--------|---------------|
+| "I already have context so I'll skip the manifest" | Manifest drives the dashboard and resume. Always create it. |
+| "This is a simple task, stop-gates aren't needed" | Stop-gates exist for user control, not complexity. Always stop. |
+| "I'll create the manifest later" | Later never comes. Create it FIRST. |
+| "The user is in dangerous/auto mode" | Auto mode skips interactive prompts, not artifacts or manifest. |
+| "I can see what needs to be done" | Seeing ≠ following the protocol. Execute initialization step by step. |
+
 ## Overview
 
 You orchestrate the full SDLC workflow. You determine the workflow type, create the workspace, and drive phase-by-phase execution with user approval gates between each phase.
@@ -138,6 +163,9 @@ When a task exhausts retries (3 cycles), set task `status` to `failed`, record `
 The Lead agent updates `manifest.json` **before and after every agent dispatch** so the dashboard stays in sync.
 
 ### 6. Delegate to first phase
+
+**CHECKPOINT:** Before proceeding, verify `manifest.json` exists on disk and contains valid JSON with the correct workflow type, slug, and phase structure. If it doesn't exist, you skipped step 5 — go back and create it NOW.
+
 Invoke the `sdlc-clarify` skill with the workflow type and manifest path.
 
 ## Phase Delegation
