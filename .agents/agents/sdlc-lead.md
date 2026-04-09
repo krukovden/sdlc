@@ -65,6 +65,7 @@ The primary skill is the domain skill assigned to the task in `03-plan.md`. It m
 
 | Domain | Primary Skill |
 |--------|--------------|
+| React / Next.js frontend | `frontend-react` |
 | Angular frontend | `frontend-angular` |
 | Node.js backend | `backend-node` |
 | C# Azure Functions | `backend-csharp` |
