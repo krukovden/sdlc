@@ -37,7 +37,7 @@ function run(cmd, label) {
   }
 }
 
-const ok = run(`node --test "Testing/tier1/*.test.js"${reporter}`, 'Tier 1: File Generation Tests');
+const ok = run(`node --test Testing/tier1/*.test.js${reporter}`, 'Tier 1: File Generation Tests');
 
 // Show runs location if --keep was used
 if (keep && fs.existsSync(runsDir)) {
