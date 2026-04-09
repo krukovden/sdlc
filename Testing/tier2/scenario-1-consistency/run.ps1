@@ -1,15 +1,17 @@
 # Testing/tier2/scenario-1-consistency/run.ps1
 #
-# Orchestrator for Scenario 1: Consistency Test.
-# Calls each tool's run.ps1, then runs cross-tool comparison.
+# Scenario 1: Consistency Test.
+# Runs each tool independently with the same task.
+# Validates: all phases approved, all required artifacts exist, same structure across tools.
 [CmdletBinding()]
 param()
 
 $ErrorActionPreference = "Stop"
 
-# Load shared library (for comparison functions)
-. "$PSScriptRoot\..\lib\Compare-Structure.ps1"
-. "$PSScriptRoot\..\lib\Compare-Content.ps1"
+# Load shared library
+. "$PSScriptRoot\..\lib\Setup-Workspace.ps1"
+. "$PSScriptRoot\..\lib\Invoke-Tool.ps1"
+. "$PSScriptRoot\..\lib\Assert-Workflow.ps1"
 
 # Read config
 $config = Get-Content "$PSScriptRoot\scenario.json" -Raw | ConvertFrom-Json
@@ -22,29 +24,75 @@ Write-Host " Task:     $($config.task)"
 Write-Host " Tools:    $($config.tools -join ', ')"
 Write-Host "=========================================="
 
-# Phase 1: Run each tool via its own script
+# Phase 1: Run each tool and validate
+$fileLists = @{}
+
 foreach ($tool in $config.tools) {
-    $toolScript = Join-Path $PSScriptRoot $tool "run.ps1"
-    if (-not (Test-Path $toolScript)) {
-        throw "Tool script not found: $toolScript"
-    }
-    & $toolScript
-}
+    Write-Host "`n--- $tool ---"
 
-# Phase 2: Cross-tool structural comparison
-Compare-ScenarioStructure `
-    -ScenarioDir $PSScriptRoot `
-    -Tools $config.tools `
-    -Workflow $config.workflow
-
-# Phase 3: AI-powered content comparison
-if ($config.compareWith) {
-    $report = Compare-ScenarioContent `
+    $workspace = New-ScenarioWorkspace `
         -ScenarioDir $PSScriptRoot `
-        -Tools $config.tools `
+        -Tool $tool `
+        -Workflow $config.workflow
+
+    Invoke-SdlcTool `
+        -Tool $tool `
+        -Workspace $workspace `
+        -Task $config.task `
         -Workflow $config.workflow `
-        -CompareWith $config.compareWith
+        -Timeout $config.timeout
+
+    # Validate all phases approved + all artifacts exist
+    Assert-ValidWorkflow `
+        -WorkspaceDir $workspace `
+        -WorkflowType $config.workflow `
+        -Phases $config.phases.$tool
+
+    # Collect artifact file list for cross-tool comparison
+    $workflowFolder = Get-WorkflowFolder -WorkflowsDir (Join-Path $workspace "docs\workflows")
+    $files = @()
+    Get-ChildItem -Path $workflowFolder -Recurse -File | ForEach-Object {
+        $rel = $_.FullName.Substring($workflowFolder.Length + 1).Replace("\", "/")
+        $files += $rel
+    }
+    $fileLists[$tool] = ($files | Sort-Object)
+
+    Write-Host "  $tool : $($files.Count) artifact files"
+
+    # Cleanup build artifacts
+    foreach ($junk in @("node_modules", "dist", "package-lock.json")) {
+        $junkPath = Join-Path $workspace $junk
+        if (Test-Path $junkPath) {
+            Remove-Item $junkPath -Recurse -Force
+        }
+    }
+
+    Write-Host "  $tool completed successfully"
 }
+
+# Phase 2: Compare file structure across tools
+Write-Host "`n==> Structural comparison"
+
+$allFiles = @()
+foreach ($tool in $config.tools) { $allFiles += $fileLists[$tool] }
+$allFiles = $allFiles | Sort-Object -Unique
+
+$mismatches = @()
+foreach ($file in $allFiles) {
+    $missing = @()
+    foreach ($tool in $config.tools) {
+        if ($fileLists[$tool] -notcontains $file) { $missing += $tool }
+    }
+    if ($missing.Count -gt 0) {
+        $mismatches += "  $file — missing from: $($missing -join ', ')"
+    }
+}
+
+if ($mismatches.Count -gt 0) {
+    throw "Structural mismatches:`n$($mismatches -join "`n")"
+}
+
+Write-Host "  All tools produced the same $($allFiles.Count) artifact files"
 
 Write-Host "`n=========================================="
 Write-Host " Scenario 1: PASSED"

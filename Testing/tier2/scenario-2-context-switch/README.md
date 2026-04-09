@@ -2,7 +2,7 @@
 
 ## Goal
 
-Verify that Tool B can pick up an SDLC workflow from where Tool A left off, using shared `docs/workflows/` artifacts as the handoff mechanism.
+Verify that different AI tools can hand off an SDLC workflow to each other using shared `docs/workflows/` artifacts in a single workspace.
 
 ## Task
 
@@ -10,18 +10,28 @@ Verify that Tool B can pick up an SDLC workflow from where Tool A left off, usin
 
 ## What it tests
 
-1. Claude runs phases: clarify, research, design (stops after design)
-2. Copilot receives Claude's artifacts and runs phases: plan, implement
-3. The final workspace has a complete workflow with all phases done
+All three tools share ONE workspace (no per-tool folders). Each tool picks up `docs/workflows/` from the previous tool and continues.
 
-## Handoff
+1. **Claude** starts the workflow — runs clarify, research (stops)
+2. **Copilot** resumes — runs design (stops)
+3. **Codex** resumes — runs plan, implement (finishes)
 
-Claude's `docs/workflows/` folder is copied into Copilot's workspace before Copilot runs with `/sdlc:resume`.
+The final workspace has a complete workflow with all 5 phases approved in manifest.json.
 
-## compareWith
+## Workspace layout
 
-Tool used for AI-powered artifact comparison.
-Valid values: claude, copilot, codex
+```
+Run/<workflow>/<timestamp>/
+├── .agents/          # sdlc init all
+├── .claude/          # claude config
+├── .github/          # copilot config
+├── .codex/           # codex config
+├── AGENTS.md         # generated
+├── docs/workflows/   # shared artifacts — each tool reads & writes here
+├── src/              # fixture project source
+├── test/             # fixture project tests
+└── package.json      # fixture project config
+```
 
 ## Run
 

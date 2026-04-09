@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-An npm package (`@krukovden/sdlc`) that provides an AI-powered multi-agent SDLC system. Users run `npx sdlc init` to scaffold platform-specific config files (`.claude/`, `.github/`, `.codex/`) into their project, generated from the `.agents/` source of truth.
+An npm package (`@krukovden/sdlc`) that provides an AI-powered multi-agent SDLC system. The recommended user flow is `npx @krukovden/sdlc init ...`, which scaffolds platform-specific config files (`.claude/`, `.github/`, `.codex/`) into the project without adding the package to `package.json`.
 
 ## Architecture
 

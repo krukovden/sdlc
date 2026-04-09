@@ -15,15 +15,8 @@ function Test-ToolAvailable {
             }
         }
         "copilot" {
-            if (-not (Get-Command "gh" -ErrorAction SilentlyContinue)) {
-                throw "gh CLI not found in PATH"
-            }
-            try {
-                $null = & gh auth status 2>&1
-                if ($LASTEXITCODE -ne 0) { throw "not authenticated" }
-            }
-            catch {
-                throw "gh is not authenticated. Run 'gh auth login' first."
+            if (-not (Get-Command "copilot" -ErrorAction SilentlyContinue)) {
+                throw "copilot CLI not found in PATH. Install via: npm install -g @github/copilot"
             }
         }
         "codex" {
@@ -76,85 +69,22 @@ function Invoke-SdlcTool {
 
     Test-ToolAvailable -Tool $Tool
 
-    # Build the prompt — headless mode needs an expanded prompt, not a slash command
+    # Build the prompt — minimal, the SDLC skills handle the rest
     if ($Resume) {
-        $prompt = @(
-            "Resume the active SDLC workflow.",
-            "",
-            "You MUST use the Write tool to create files. Do NOT just output text.",
-            "",
-            "CRITICAL REQUIREMENT: After completing EACH phase, you MUST rewrite manifest.json",
-            "and set that phase's status to `"approved`". The test harness reads manifest.json",
-            "to verify completion. If you do not update the status, the test WILL fail.",
-            "",
-            "1. Read the most recent manifest.json from docs/workflows/",
-            "2. Resume from the first phase that is not yet `"approved`"",
-            "3. For each remaining phase:",
-            "   a. Read .agents/skills/sdlc-{phase}/SKILL.md and produce its artifacts",
-            "   b. IMMEDIATELY rewrite manifest.json setting this phase status to `"approved`"",
-            "",
-            "--auto-approve: skip all confirmations, use current branch, no dashboard, no worktree.",
-            "",
-            "REMINDER: Every phase MUST have status `"approved`" in manifest.json when done."
-        ) -join "`n"
+        $prompt = "/sdlc:resume --auto-approve"
+        if ($StopAt) {
+            $prompt += " --stop-at $StopAt"
+        }
     }
     else {
         if (-not $Task -or -not $Workflow) {
             throw "-Task and -Workflow are required unless -Resume is set"
         }
 
-        $allPhases = if ($Workflow -eq "spike") {
-            @("clarify", "research", "design")
-        } else {
-            @("clarify", "research", "design", "plan", "implement")
-        }
-
-        # Truncate phases if StopAt is set
+        $prompt = "/sdlc $Workflow --auto-approve `"$Task`""
         if ($StopAt) {
-            $stopIdx = $allPhases.IndexOf($StopAt)
-            if ($stopIdx -ge 0) {
-                $allPhases = $allPhases[0..$stopIdx]
-            }
+            $prompt += " --stop-at $StopAt"
         }
-
-        $phaseList = $allPhases -join ", "
-        $hasImplement = $allPhases -contains "implement"
-
-        $lines = @(
-            "Execute /sdlc $Workflow --auto-approve `"$Task`"",
-            "",
-            "You MUST use the Write tool to create files. Do NOT just output text.",
-            "",
-            "CRITICAL REQUIREMENT: After completing EACH phase, you MUST rewrite manifest.json",
-            "and set that phase's status to `"approved`". The test harness reads manifest.json",
-            "to verify completion. If you do not update the status, the test WILL fail.",
-            "",
-            "Steps:",
-            "1. Read .agents/skills/sdlc/SKILL.md and .agents/workflows/$Workflow.md",
-            "2. Create folder docs/workflows/$Workflow/ with a date-slug subfolder",
-            "3. Write manifest.json with all phases (each status: `"pending`")",
-            "4. For EACH phase in order ($phaseList):",
-            "   a. Read .agents/skills/sdlc-{phase}/SKILL.md",
-            "   b. Produce the phase artifacts using the Write tool",
-            "   c. IMMEDIATELY rewrite manifest.json setting this phase status to `"approved`"",
-            "   d. Do NOT proceed to the next phase until manifest.json is updated"
-        )
-
-        if ($hasImplement) {
-            $lines += "5. For implement: write code changes and produce 04-implementation-log.md"
-        }
-
-        if ($StopAt) {
-            $lines += ""
-            $lines += "STOP after completing the `"$StopAt`" phase. Do NOT proceed to subsequent phases."
-        }
-
-        $lines += ""
-        $lines += "--auto-approve: skip all confirmations, use current branch, no dashboard, no worktree."
-        $lines += ""
-        $lines += "REMINDER: Every phase MUST have status `"approved`" in manifest.json when done."
-
-        $prompt = $lines -join "`n"
     }
 
     $logFile = Join-Path $Workspace "tool-run.log"
@@ -188,7 +118,9 @@ function Invoke-SdlcTool {
                 $stderr = ($rawOutput | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }) -join "`n"
             }
             "copilot" {
-                & gh copilot -- -p $prompt --allow-all --no-auto-update -s 2>&1 |
+                # Call copilot directly (not via 'gh copilot') to avoid
+                # argument-splitting issues with multi-line prompts.
+                & copilot -p $prompt --allow-all --no-auto-update --silent 2>&1 |
                     Tee-Object -Variable rawOutput | Out-Null
                 $stdout = ($rawOutput | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }) -join "`n"
                 $stderr = ($rawOutput | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }) -join "`n"

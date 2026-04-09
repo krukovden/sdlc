@@ -9,6 +9,5 @@
     "copilot": ["clarify", "research", "design", "plan", "implement"],
     "codex": ["clarify", "research", "design", "plan", "implement"]
   },
-  "compareWith": "claude",
   "timeout": 900000
 }

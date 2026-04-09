@@ -165,18 +165,22 @@ After a phase is approved (by the user, or automatically if `--auto-approve`):
 ## Resume Mode
 
 When invoked with `mode=resume`:
-1. Read `manifest.json` from the most recent workflow folder in `docs/workflows/` (or user-specified path)
-2. If a phase argument is provided, resume from that phase
-3. If no phase specified, resume from `manifest.current_phase`
-4. Re-read all prior artifacts (they may have been manually edited between sessions)
-5. If artifacts were edited since the phase that produced them, note at stop-gate
-6. Restore worktree context if `isolation: "worktree"` and the worktree still exists
-7. If no active workflow found, tell the user and suggest `/sdlc` to start a new one
+1. Scan all `manifest.json` files under `docs/workflows/`
+2. Filter to workflows that are **not complete** (any phase without status `approved`)
+3. If **one** incomplete workflow found — resume it automatically
+4. If **multiple** incomplete workflows found — list them and ask the user which one to resume (unless `--auto-approve` is set, in which case pick the most recent)
+5. If a user-specified path is provided, use that directly (skip scanning)
+6. If a phase argument is provided, resume from that phase
+7. If no phase specified, resume from `manifest.current_phase`
+8. Re-read all prior artifacts (they may have been manually edited between sessions)
+9. If artifacts were edited since the phase that produced them, note at stop-gate
+10. Restore worktree context if `isolation: "worktree"` and the worktree still exists
+11. If no active workflow found, tell the user and suggest `/sdlc` to start a new one
 
 ## Single-Phase Mode
 
 When invoked with a specific phase (e.g., `phase=research`):
-1. Look for an active workflow in `docs/workflows/` (most recent manifest)
+1. Scan `docs/workflows/` for incomplete workflows (same logic as Resume Mode steps 1-5)
 2. If found, run only that phase within the existing workflow
 3. If no active workflow, create a new one with the phase as the starting point
 4. Apply artifact gating — check that prerequisite artifacts exist (warn if missing, don't block)

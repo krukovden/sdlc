@@ -30,17 +30,17 @@ You approve after each phase. Tasks run continuously without stopping between th
 ## Quick Start
 
 ```bash
-npm i @krukovden/sdlc
-npx sdlc
+npx @krukovden/sdlc
 
 # Setup asks which tool you use (Claude Code / Copilot / Codex / All)
 # and generates platform-specific config files from .agents/
 
+# Or specify the platform directly:
+npx @krukovden/sdlc claude
+
 # Then start a workflow:
 /sdlc feature "add user notifications"
 ```
-
-To regenerate platform files: `npx sdlc` or `npx sdlc [claude|copilot|codex|all]`
 
 ---
 
@@ -133,7 +133,7 @@ The system works from any AI coding tool. `.agents/` is the single source of tru
              Claude Code   Copilot     Codex
 ```
 
-Run `npm i @krukovden/sdlc && npx sdlc` once per project — it generates the right config for your tool.
+Run `npx @krukovden/sdlc` once per project — it generates the right config for your tool.
 
 ---
 
@@ -177,9 +177,8 @@ Skills are domain knowledge that agents load on demand:
 
 | Command | What it does |
 |---------|-------------|
-| `npm i @krukovden/sdlc` | Install the package |
-| `npx sdlc` | Interactive setup — asks which tool, generates config |
-| `npx sdlc claude` | Generate Claude Code config only (also: `copilot`, `codex`, `all`) |
+| `npx @krukovden/sdlc` | Interactive setup — asks which tool, generates config |
+| `npx @krukovden/sdlc claude` | Generate Claude Code config only (also: `copilot`, `codex`, `all`) |
 
 ### Full Workflow
 
@@ -188,6 +187,23 @@ Skills are domain knowledge that agents load on demand:
 /sdlc bugfix "login returns 500"           # same pipeline, bugfix-focused
 /sdlc refactor "extract payment service"   # same pipeline, refactor-focused
 /sdlc spike "evaluate auth libraries"      # stops at design, no code
+```
+
+### Flags
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `--auto-approve` | Skip approval prompts between phases | `/sdlc feature --auto-approve "add notifications"` |
+| `--stop-at <phase>` | Run only up to the specified phase, then stop | `/sdlc feature --stop-at design "add notifications"` |
+
+Flags can be combined:
+
+```bash
+# Run clarify + research only, no approval prompts
+/sdlc feature --auto-approve --stop-at research "add notifications"
+
+# Resume and stop after plan
+/sdlc:resume --auto-approve --stop-at plan
 ```
 
 ### Single Phase
@@ -204,16 +220,26 @@ Run one phase at a time when you want more control:
 
 ### Resume
 
+Pick up where you (or another tool) left off. The system scans `docs/workflows/` for incomplete workflows and continues from the first phase that isn't approved yet.
+
 ```bash
 /sdlc:resume                               # resume from where you left off
 /sdlc:resume design                        # resume from a specific phase
+/sdlc:resume --auto-approve                # resume without approval prompts
+/sdlc:resume --auto-approve --stop-at plan # resume, do plan only, stop
 ```
+
+**What if there are multiple workflows?**
+- One incomplete workflow → resumes it automatically
+- Multiple incomplete workflows → asks which one to resume
+- With `--auto-approve` → picks the most recent automatically
+- All workflows complete → tells you and suggests `/sdlc` to start a new one
 
 ### Command Reference Across Platforms
 
 | Action | Claude Code | Copilot (VS Code) | Codex |
 |--------|------------|-------------------|-------|
-| **Setup** | `npx sdlc` | `npx sdlc` | `npx sdlc` |
+| **Setup** | `npx @krukovden/sdlc` | `npx @krukovden/sdlc` | `npx @krukovden/sdlc` |
 | **Full pipeline** | `/sdlc feature "..."` | `/sdlc feature "..."` | `$sdlc feature "..."` |
 | **Clarify only** | `/sdlc:clarify "..."` | `/sdlc:clarify "..."` | `$sdlc-clarify "..."` |
 | **Research only** | `/sdlc:research` | `/sdlc:research` | `$sdlc-research` |
@@ -223,11 +249,39 @@ Run one phase at a time when you want more control:
 | **Resume workflow** | `/sdlc:resume` | `/sdlc:resume` | `$sdlc resume` |
 | **Resume from phase** | `/sdlc:resume design` | `/sdlc:resume design` | `$sdlc resume design` |
 
+### Headless / CI Usage
+
+Each tool can run the workflow non-interactively via its CLI:
+
+```bash
+# Claude Code
+claude -p '/sdlc feature --auto-approve "add notifications"' --dangerously-skip-permissions
+
+# GitHub Copilot
+copilot -p '/sdlc feature --auto-approve "add notifications"' --allow-all --no-auto-update --silent
+
+# OpenAI Codex
+codex exec --skip-git-repo-check --full-auto '/sdlc feature --auto-approve "add notifications"'
+```
+
+Context switching — one tool starts, another resumes from the same `docs/workflows/`:
+
+```bash
+# Tool A: start and stop after research
+claude -p '/sdlc feature --auto-approve --stop-at research "add notifications"' --dangerously-skip-permissions
+
+# Tool B: resume and stop after design
+copilot -p '/sdlc:resume --auto-approve --stop-at design' --allow-all --no-auto-update --silent
+
+# Tool C: resume and finish
+codex exec --skip-git-repo-check --full-auto '/sdlc:resume --auto-approve'
+```
+
 ### Typical Session
 
 ```bash
 # First time setup
-npm i @krukovden/sdlc && npx sdlc
+npx @krukovden/sdlc
 
 # Start a feature
 /sdlc feature "add email notifications for order updates"

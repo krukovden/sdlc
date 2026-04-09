@@ -158,13 +158,13 @@ function Assert-ValidWorkflow {
         $exactPath = Join-Path $workflowFolder $artifact
         if (Test-Path $exactPath) { continue }
 
-        # Fuzzy match: check if actual file contains the expected stem
+        # Fuzzy match: check if any actual file contains the expected stem
+        # Searches any directory — some tools nest files in subdirectories
+        # (e.g. 00-clarify/00-clarify.md instead of 00-clarify.md)
         $stem = [System.IO.Path]::GetFileNameWithoutExtension($artifact)
-        $dir = [System.IO.Path]::GetDirectoryName($artifact)
         $fuzzy = $actualFiles | Where-Object {
-            $fDir = [System.IO.Path]::GetDirectoryName($_)
             $fName = [System.IO.Path]::GetFileNameWithoutExtension($_)
-            ($fDir -eq $dir) -and ($fName -like "*$stem*")
+            $fName -like "*$stem*"
         }
 
         if (-not $fuzzy) {
