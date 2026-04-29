@@ -116,8 +116,8 @@ function discoverAgents() {
   });
 }
 
-function discoverSkills() {
-  const dir = path.join(AGENTS_SRC, 'skills');
+function discoverSkills(agentsDir = AGENTS_SRC) {
+  const dir = path.join(agentsDir, 'skills');
   return listDirs(dir).map(name => {
     const skillFile = path.join(dir, name, 'SKILL.md');
     if (!fs.existsSync(skillFile)) return null;
@@ -517,14 +517,14 @@ ${meta.extra}
 // Generator: GitHub Copilot (.github/)
 // ---------------------------------------------------------------------------
 
-function generateCopilot(skills, _installedPlugins) {
+function generateCopilot(skills, _installedPlugins, sourceDir = PACKAGE_DIR) {
   const dir = path.join(PROJECT_DIR, '.github');
   const results = { created: 0, updated: 0, unchanged: 0 };
 
   function track(status) { results[status]++; }
 
   // copilot-instructions.md
-  const agentsMdPath = path.join(PACKAGE_DIR, 'AGENTS.md');
+  const agentsMdPath = path.join(sourceDir, 'AGENTS.md');
   if (fs.existsSync(agentsMdPath)) {
     const instructions = readFile(agentsMdPath);
     const copilotInstructions = instructions
@@ -811,11 +811,71 @@ async function runInit() {
 }
 
 // ---------------------------------------------------------------------------
+// Update command — regenerate platform files from project's .agents/
+// ---------------------------------------------------------------------------
+
+async function runUpdate() {
+  console.log('\n  SDLC Update\n');
+
+  const projectAgentsDir = path.join(PROJECT_DIR, '.agents');
+
+  if (!fs.existsSync(projectAgentsDir)) {
+    console.error('  ✗ No .agents/ found in this project. Run npx sdlc init first.');
+    process.exit(1);
+  }
+
+  const platformArg = process.env.SDLC_UPDATE_PLATFORM?.toLowerCase();
+  let platformKeys;
+
+  if (platformArg && platformArg !== 'all') {
+    if (!PLATFORMS[platformArg]) {
+      console.error(`  ✗ Unknown platform: ${platformArg}`);
+      process.exit(1);
+    }
+    platformKeys = [platformArg];
+  } else if (platformArg === 'all') {
+    platformKeys = Object.keys(PLATFORMS);
+  } else {
+    platformKeys = Object.keys(PLATFORMS).filter(key =>
+      fs.existsSync(path.join(PROJECT_DIR, PLATFORMS[key].dir)),
+    );
+  }
+
+  if (platformKeys.length === 0) {
+    console.error('  ✗ No platform directories found. Run npx sdlc init first.');
+    process.exit(1);
+  }
+
+  const skills = discoverSkills(projectAgentsDir);
+  const installedPlugins = detectInstalledPlugins();
+
+  console.log(`  Source: .agents/ — ${skills.length} skills`);
+  if (installedPlugins.length > 0) {
+    console.log(`  Plugins detected: ${installedPlugins.join(', ')}`);
+  }
+  console.log();
+
+  for (const key of platformKeys) {
+    const platform = PLATFORMS[key];
+    console.log(`  Generating ${platform.dir} (${platform.name})...`);
+    const results = platform.generate(skills, installedPlugins, PROJECT_DIR);
+    console.log(`    ${results.created} created, ${results.updated} updated, ${results.unchanged} unchanged`);
+  }
+
+  console.log('\n  ─────────────────────────────────');
+  console.log('  Update complete.\n');
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
 async function main() {
-  await runInit();
+  if (COMMAND === 'update') {
+    await runUpdate();
+  } else {
+    await runInit();
+  }
 }
 
 main().catch(err => {

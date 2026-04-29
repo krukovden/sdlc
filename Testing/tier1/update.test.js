@@ -190,8 +190,8 @@ describe('error: no platform directories found', () => {
 
   it('prints message about missing platform directories', () => {
     assert.ok(
-      output.includes('platform') || output.includes('init'),
-      `Expected helpful message, got: ${output}`,
+      output.includes('No platform directories found'),
+      `Expected 'No platform directories found' in output, got: ${output}`,
     );
   });
 });
