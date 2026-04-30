@@ -10,7 +10,7 @@ description: "SDLC workflow orchestrator — routes /sdlc commands to the correc
 Before executing any `/sdlc` command, ensure the manifest tracking server is running:
 
 1. Read `.sdlc-config.json` in the project root — get `package_dir`
-2. Run `python <package_dir>/server/start.py` from the project root
+2. Run `python <package_dir>/.agents/assets/server/start.py` from the project root
    - If already running: prints the URL and exits immediately (idempotent)
    - If not running: starts in background, prints URL
 3. Call `GET http://localhost:7865/api/state` and print this status strip to the conversation:

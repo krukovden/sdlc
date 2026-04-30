@@ -41,7 +41,7 @@ describe('/api/state — no workflows', () => {
   let proc;
 
   before(async () => {
-    const dashPy = path.join(SDLC_ROOT, 'server', 'dashboard.py');
+    const dashPy = path.join(SDLC_ROOT, '.agents', 'assets', 'server', 'dashboard.py');
     proc = spawn(pythonCmd, [dashPy, '--port', String(PORT)], {
       cwd: SDLC_ROOT,
       stdio: 'pipe',
@@ -105,7 +105,7 @@ describe('/api/state — with a manifest', () => {
       ],
     }));
 
-    const dashPy = path.join(SDLC_ROOT, 'server', 'dashboard.py');
+    const dashPy = path.join(SDLC_ROOT, '.agents', 'assets', 'server', 'dashboard.py');
     proc = spawn(pythonCmd, [dashPy, '--port', String(PORT + 1)], {
       cwd: proj.dir,
       stdio: 'pipe',

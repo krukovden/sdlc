@@ -651,7 +651,7 @@ function setupCommon() {
     writeIfChanged(path.join(PROJECT_DIR, 'AGENTS.md'), readFile(agentsMdSrc));
   }
 
-  // Write .sdlc-config.json so skill preamble can locate server/start.py
+  // Write .sdlc-config.json so skill preamble can locate .agents/assets/server/start.py
   writeIfChanged(
     path.join(PROJECT_DIR, '.sdlc-config.json'),
     JSON.stringify({ package_dir: PACKAGE_DIR }, null, 2) + '\n',

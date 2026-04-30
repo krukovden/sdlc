@@ -48,7 +48,7 @@ function serverJson() {
 
 function handleServer(sub) {
   const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-  const startPy = path.join(path.resolve(__dirname, '..'), 'server', 'start.py');
+  const startPy = path.join(path.resolve(__dirname, '..'), '.agents', 'assets', 'server', 'start.py');
   const action = sub || 'start';
 
   if (action === 'start') {
