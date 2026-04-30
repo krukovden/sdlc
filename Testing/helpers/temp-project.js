@@ -45,6 +45,7 @@ async function create({ tool } = {}) {
   copyDirSync(path.join(SDLC_ROOT, '.agents'), path.join(dir, '.agents'));
   fs.copyFileSync(path.join(SDLC_ROOT, 'setup.js'), path.join(dir, 'setup.js'));
   copyDirSync(path.join(SDLC_ROOT, 'bin'), path.join(dir, 'bin'));
+  copyDirSync(path.join(SDLC_ROOT, 'server'), path.join(dir, 'server'));
   fs.copyFileSync(path.join(SDLC_ROOT, 'package.json'), path.join(dir, 'package.json'));
   fs.copyFileSync(path.join(SDLC_ROOT, 'AGENTS.md'), path.join(dir, 'AGENTS.md'));
 
