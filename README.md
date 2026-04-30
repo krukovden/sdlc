@@ -30,17 +30,26 @@ You approve after each phase. Tasks run continuously without stopping between th
 ## Quick Start
 
 ```bash
+# First-time setup — generates platform-specific config from .agents/
 npx github:krukovden/sdlc
 
-# Setup asks which tool you use (Claude Code / Copilot / Codex / All)
-# and generates platform-specific config files from .agents/
-
 # Or specify the platform directly:
-npx github:krukovden/sdlc claude
+npx github:krukovden/sdlc claude   # also: copilot, codex, all
 
 # Then start a workflow:
 /sdlc feature "add user notifications"
 ```
+
+### Updating
+
+When you pull a new version of the package, regenerate the platform config to pick up any changes to agents, skills, and guidelines:
+
+```bash
+npx github:krukovden/sdlc -u          # regenerate all detected platforms
+npx github:krukovden/sdlc -u claude   # regenerate one platform only
+```
+
+This rewrites `.claude/`, `.github/`, and `.codex/` from the updated `.agents/` source. Your workflow artifacts in `docs/workflows/` are not touched.
 
 ---
 
