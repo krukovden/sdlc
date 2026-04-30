@@ -55,7 +55,11 @@ function handleServer(sub) {
     const result = spawnSync(pythonCmd, [startPy], {
       cwd: process.cwd(), stdio: 'inherit',
     });
-    process.exit(result.status ?? 0);
+    if (result.error) {
+      console.error(`  ✗ Failed to start server: ${result.error.message}`);
+      process.exit(1);
+    }
+    process.exit(result.status ?? 1);
   }
 
   if (action === 'url') {
