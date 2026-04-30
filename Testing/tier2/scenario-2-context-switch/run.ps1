@@ -2,7 +2,7 @@
 #
 # Scenario 2: Context Switching Test.
 # Creates ONE shared workspace, runs each tool in sequence.
-# Each tool picks up docs/workflows/ from where the previous one stopped.
+# Each tool picks up sdlc-doc/workflows/ from where the previous one stopped.
 # Validates: all phases approved, all required artifacts exist.
 [CmdletBinding()]
 param()
