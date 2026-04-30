@@ -87,7 +87,7 @@ Each agent-to-agent handoff has a retry loop (max 3 cycles). If an agent fails, 
 ## Folder Structure
 
 ```
-docs/workflows/feature/{YYYY-MM-DD}-{slug}/
+sdlc-doc/workflows/feature/{YYYY-MM-DD}-{slug}/
   manifest.json
   00-clarify.md
   01-research.md

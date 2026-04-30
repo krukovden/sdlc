@@ -7,7 +7,7 @@ const path = require('node:path');
 
 const SDLC_ROOT = require('../helpers/temp-project').SDLC_ROOT;
 const state = require('../helpers/expected-state');
-const WORKFLOWS_DIR = path.join(SDLC_ROOT, '.agents', 'workflows');
+const WORKFLOWS_DIR = path.join(SDLC_ROOT, '.sdlc', 'workflows');
 
 function readWorkflow(name) {
   return fs.readFileSync(path.join(WORKFLOWS_DIR, `${name}.md`), 'utf8');
@@ -91,12 +91,12 @@ describe('workflow-schemas', () => {
       }
     });
 
-    it('All workflows have "docs/workflows/" in content', () => {
+    it('All workflows have "sdlc-doc/workflows/" in content', () => {
       for (const name of Object.keys(state.workflows)) {
         const content = readWorkflow(name);
         assert.ok(
-          content.includes('docs/workflows/'),
-          `${name}.md missing "docs/workflows/" reference`,
+          content.includes('sdlc-doc/workflows/'),
+          `${name}.md missing "sdlc-doc/workflows/" reference`,
         );
       }
     });
