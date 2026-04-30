@@ -34,6 +34,7 @@ class _State:
 
 _state = _State()
 _project_dir = Path.cwd()
+_server = None  # set in main(); used by /stop handler
 
 
 def _find_manifest_paths():
@@ -108,7 +109,11 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split('?')[0]
-        if path in ('/', '/dashboard'):
+        if path == '/':
+            self.send_response(302)
+            self.send_header('Location', '/dashboard')
+            self.end_headers()
+        elif path == '/dashboard':
             self._serve_file(SERVER_DIR / 'dashboard.html', 'text/html; charset=utf-8')
         elif path == '/api/state':
             self._send_json(_state.snapshot())
@@ -120,10 +125,8 @@ class _Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/stop':
             self._send_json({'stopping': True})
-            threading.Thread(
-                target=lambda: os.kill(os.getpid(), signal.SIGTERM),
-                daemon=True,
-            ).start()
+            if _server:
+                threading.Thread(target=_server.shutdown, daemon=True).start()
         else:
             self.send_error(404)
 
@@ -158,16 +161,17 @@ def main():
     watcher = threading.Thread(target=_watcher, daemon=True)
     watcher.start()
 
-    server = HTTPServer(('127.0.0.1', args.port), _Handler)
+    global _server
+    _server = HTTPServer(('127.0.0.1', args.port), _Handler)
 
     def _shutdown(signum, frame):
-        threading.Thread(target=server.shutdown, daemon=True).start()
+        threading.Thread(target=_server.shutdown, daemon=True).start()
 
     signal.signal(signal.SIGTERM, _shutdown)
 
     print(f'SDLC dashboard at http://localhost:{args.port}', flush=True)
     try:
-        server.serve_forever()
+        _server.serve_forever()
     except KeyboardInterrupt:
         pass
 
