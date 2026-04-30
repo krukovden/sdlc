@@ -136,8 +136,7 @@ function agentHtml(role, agentData, isCurrent) {
   const cls = ROLE_CLASS[role];
 
   if (status === 'active' && isCurrent) {
-    const isRejected = status === 'failed';
-    return `<div class="dot-active${isRejected?' fix':''}" style="background:${color}" title="${role} — working now">
+    return `<div class="dot-active" style="background:${color}" title="${role} — working now">
       <span class="live"></span>${role.charAt(0).toUpperCase()+role.slice(1)}
     </div>`;
   }
@@ -149,7 +148,7 @@ function agentHtml(role, agentData, isCurrent) {
   let stateClass = 's-pending';
   if (status === 'passed') stateClass = bounces > 0 ? 's-bumpy' : 's-approved';
   else if (status === 'skipped') stateClass = 's-pending';
-  return `<div class="dot ${cls} ${stateClass}" title="${role} — ${status}${bounces>0?' ('+bounces+' bounce'+(bounces>1?'s':'')+')':''}">
+  return `<div class="dot ${cls} ${stateClass}" title="${role} — ${escHtml(String(status))}${bounces>0?' ('+bounces+' bounce'+(bounces>1?'s':'')+')':''}">
     ${letter}
   </div>`;
 }
@@ -172,7 +171,7 @@ function cardHtml(task, cardClass) {
   }).filter(Boolean).join('');
 
   return `<div class="card ${cardClass}">
-    <div class="card-id">#${task.id}</div>
+    <div class="card-id">#${escHtml(String(task.id))}</div>
     <div class="card-name">${escHtml(task.title || '')}</div>
     ${skillText ? `<div class="card-skill">${escHtml(skillText)}</div>` : ''}
     <div class="pipeline">
@@ -183,7 +182,7 @@ function cardHtml(task, cardClass) {
 }
 
 function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function pillHtml(phase, data) {
@@ -251,6 +250,7 @@ function render(data) {
 async function tick() {
   try {
     const res = await fetch('/api/state');
+    if (!res.ok) throw new Error(res.status);
     const data = await res.json();
     render(data);
   } catch {
