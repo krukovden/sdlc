@@ -8,7 +8,7 @@ const path = require('node:path');
 const { create } = require('./temp-project.js');
 
 describe('temp-project helper', () => {
-  it('creates temp dir with .agents/ copied', async () => {
+  it('creates temp dir with .sdlc/ copied', async () => {
     let proj;
     try {
       proj = await create({ tier: 1 });
@@ -16,20 +16,20 @@ describe('temp-project helper', () => {
 
       assert.ok(fs.existsSync(dir), 'temp dir should exist');
       assert.ok(
-        fs.existsSync(path.join(dir, '.agents', 'agents', 'sdlc-lead.md')),
-        '.agents/agents/sdlc-lead.md should exist'
+        fs.existsSync(path.join(dir, '.sdlc', 'agents', 'sdlc-lead.md')),
+        '.sdlc/agents/sdlc-lead.md should exist'
       );
       assert.ok(
-        fs.existsSync(path.join(dir, '.agents', 'skills', 'architect', 'SKILL.md')),
-        '.agents/skills/architect/SKILL.md should exist'
+        fs.existsSync(path.join(dir, '.sdlc', 'skills', 'architect', 'SKILL.md')),
+        '.sdlc/skills/architect/SKILL.md should exist'
       );
       assert.ok(
-        fs.existsSync(path.join(dir, '.agents', 'guidelines', 'conventions.md')),
-        '.agents/guidelines/conventions.md should exist'
+        fs.existsSync(path.join(dir, '.sdlc', 'guidelines', 'conventions.md')),
+        '.sdlc/guidelines/conventions.md should exist'
       );
       assert.ok(
-        fs.existsSync(path.join(dir, '.agents', 'workflows', 'feature.md')),
-        '.agents/workflows/feature.md should exist'
+        fs.existsSync(path.join(dir, '.sdlc', 'workflows', 'feature.md')),
+        '.sdlc/workflows/feature.md should exist'
       );
     } finally {
       if (proj) proj.cleanup();

@@ -54,9 +54,9 @@ describe('init all', () => {
     assertFileContains(proj.dir, 'AGENTS.md', 'Source of Truth');
   });
 
-  it('creates docs/workflows/ directory', () => {
-    const workflowsDir = path.join(proj.dir, 'docs', 'workflows');
-    assert.ok(fs.existsSync(workflowsDir), `docs/workflows/ directory does not exist at "${workflowsDir}"`);
+  it('creates sdlc-doc/workflows/ directory', () => {
+    const workflowsDir = path.join(proj.dir, 'sdlc-doc', 'workflows');
+    assert.ok(fs.existsSync(workflowsDir), `sdlc-doc/workflows/ directory does not exist at "${workflowsDir}"`);
   });
 
   it('.gitignore contains platform entries', () => {

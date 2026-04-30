@@ -8,7 +8,7 @@ const path = require('node:path');
 const { SDLC_ROOT } = require('../helpers/temp-project');
 const fa = require('../helpers/file-assertions');
 
-const HTML_PATH = path.join(SDLC_ROOT, 'docs', 'architecture.html');
+const HTML_PATH = path.join(SDLC_ROOT, 'assets', 'architecture.html');
 const html = fs.readFileSync(HTML_PATH, 'utf8');
 
 // ---------------------------------------------------------------------------
@@ -17,13 +17,15 @@ const html = fs.readFileSync(HTML_PATH, 'utf8');
 const SECTION_HEADINGS = [
   '0. What Is SDLC',
   '1. Cross-Platform Architecture',
-  '2. Skill Discovery',
-  '3. SDLC Workflow Phases',
-  '4. Workflow Types',
-  '5. Multi-Agent Implementation Pipeline',
-  '6. Agent Context Isolation',
-  '7. Artifact Flow',
-  '8. Platform Capabilities',
+  '2. Live Dashboard',
+  '3. Skill Discovery',
+  '4. SDLC Workflow Phases',
+  '5. Workflow Types',
+  '6. Multi-Agent Implementation Pipeline',
+  '7. Agent Context Isolation',
+  '8. Artifact Flow',
+  '9. CLI Operations',
+  '10. Platform Capabilities',
 ];
 
 describe('html-structure', () => {
@@ -52,14 +54,14 @@ describe('html-structure', () => {
   });
 
   describe('section 1: Cross-Platform Architecture', () => {
-    for (const dir of ['.agents/', '.claude/', '.github/', '.codex/']) {
+    for (const dir of ['.sdlc/', '.claude/', '.github/', '.codex/']) {
       it(`contains "${dir}"`, () => {
         assert.ok(html.includes(dir), `Missing "${dir}"`);
       });
     }
   });
 
-  describe('section 2: Skill Discovery', () => {
+  describe('section 3: Skill Discovery', () => {
     for (const tool of ['Claude Code', 'Copilot', 'Codex']) {
       it(`contains "${tool}"`, () => {
         assert.ok(html.includes(tool), `Missing "${tool}"`);
@@ -67,7 +69,7 @@ describe('html-structure', () => {
     }
   });
 
-  describe('section 3: SDLC Workflow Phases', () => {
+  describe('section 4: SDLC Workflow Phases', () => {
     for (const phase of ['Clarify', 'Research', 'Design', 'Plan', 'Implement']) {
       it(`has phase-title for "${phase}"`, () => {
         const pattern = new RegExp(`class="phase-title"[^>]*>${phase}<`, 'i');
@@ -90,7 +92,7 @@ describe('html-structure', () => {
     });
   });
 
-  describe('section 4: Workflow Types', () => {
+  describe('section 5: Workflow Types', () => {
     for (const type of ['Feature', 'Bugfix', 'Refactor', 'Spike']) {
       it(`contains workflow type "${type}"`, () => {
         assert.ok(html.includes(type), `Missing workflow type "${type}"`);
@@ -105,7 +107,7 @@ describe('html-structure', () => {
     });
   });
 
-  describe('section 5: Multi-Agent Implementation Pipeline', () => {
+  describe('section 6: Multi-Agent Implementation Pipeline', () => {
     for (const agent of ['LEAD', 'CODER', 'TESTER', 'REVIEWER', 'SECURITY']) {
       it(`contains agent name >${agent}<`, () => {
         assert.ok(
@@ -116,7 +118,7 @@ describe('html-structure', () => {
     }
   });
 
-  describe('section 6: Agent Context Isolation', () => {
+  describe('section 7: Agent Context Isolation', () => {
     const badges = ['Coder', 'Tester', 'Reviewer', 'Security'];
     for (const badge of badges) {
       it(`contains badge-agent">${badge}<`, () => {
@@ -128,7 +130,7 @@ describe('html-structure', () => {
     }
   });
 
-  describe('section 7: Artifact Flow', () => {
+  describe('section 8: Artifact Flow', () => {
     const artifacts = [
       'manifest.json',
       '00-clarify.md',
@@ -144,8 +146,8 @@ describe('html-structure', () => {
     }
   });
 
-  describe('section 7: cross-reference with feature.md workflow', () => {
-    const featureWorkflowPath = path.join(SDLC_ROOT, '.agents', 'workflows', 'feature.md');
+  describe('section 8: cross-reference with feature.md workflow', () => {
+    const featureWorkflowPath = path.join(SDLC_ROOT, '.sdlc', 'workflows', 'feature.md');
     const featureMd = fs.readFileSync(featureWorkflowPath, 'utf8');
 
     const featureArtifacts = [
@@ -161,17 +163,17 @@ describe('html-structure', () => {
       it(`"${artifact}" appears in both feature.md and architecture.html`, () => {
         assert.ok(
           featureMd.includes(artifact),
-          `Artifact "${artifact}" not found in .agents/workflows/feature.md`,
+          `Artifact "${artifact}" not found in .sdlc/workflows/feature.md`,
         );
         assert.ok(
           html.includes(artifact),
-          `Artifact "${artifact}" not found in docs/architecture.html`,
+          `Artifact "${artifact}" not found in assets/architecture.html`,
         );
       });
     }
   });
 
-  describe('section 8: Platform Capabilities', () => {
+  describe('section 10: Platform Capabilities', () => {
     it('contains class="yes"', () => {
       assert.ok(html.includes('class="yes"'), 'Missing class="yes"');
     });
@@ -188,7 +190,7 @@ describe('html-structure', () => {
   // ---------------------------------------------------------------------------
   describe('HTML validity', () => {
     it('has balanced HTML tags', () => {
-      fa.assertValidHTML(SDLC_ROOT, path.join('docs', 'architecture.html'));
+      fa.assertValidHTML(SDLC_ROOT, path.join('assets', 'architecture.html'));
     });
 
     it('all CSS custom properties used via var() are defined in :root', () => {

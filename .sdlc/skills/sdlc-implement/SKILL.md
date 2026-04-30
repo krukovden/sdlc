@@ -80,7 +80,7 @@ Read these files for context:
 - {path to relevant design artifacts}
 
 ## Domain Skill (PRIMARY)
-Read: .agents/skills/{domain-skill}/SKILL.md
+Read: .sdlc/skills/{domain-skill}/SKILL.md
 
 ## Supplementary Skills (MERGED)
 {supplementary skill paths, if any}

@@ -92,9 +92,9 @@ function Assert-ValidWorkflow {
         [string[]]$Phases
     )
 
-    $workflowFolder = Get-WorkflowFolder -WorkflowsDir (Join-Path $WorkspaceDir "docs\workflows")
+    $workflowFolder = Get-WorkflowFolder -WorkflowsDir (Join-Path $WorkspaceDir "sdlc-doc\workflows")
     if (-not $workflowFolder) {
-        throw "No workflow folder with manifest.json was found under docs/workflows"
+        throw "No workflow folder with manifest.json was found under sdlc-doc/workflows"
     }
 
     $manifestPath = Join-Path $workflowFolder "manifest.json"

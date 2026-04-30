@@ -13,8 +13,7 @@
   "files": [
     "bin/",
     "setup.js",
-    ".agents/",
-    "AGENTS.md",
+    ".sdlc/",
     "README.md"
   ],
   "keywords": [
