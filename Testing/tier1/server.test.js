@@ -154,7 +154,7 @@ describe('setup.js init writes .sdlc-config.json', () => {
 
   after(() => proj.cleanup());
 
-  it.skip('creates .sdlc-config.json with package_dir after init', () => {
+  it('creates .sdlc-config.json with package_dir after init', () => {
     const configPath = path.join(proj.dir, '.sdlc-config.json');
     assert.ok(fs.existsSync(configPath), '.sdlc-config.json should exist after init');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));

@@ -651,6 +651,12 @@ function setupCommon() {
     writeIfChanged(path.join(PROJECT_DIR, 'AGENTS.md'), readFile(agentsMdSrc));
   }
 
+  // Write .sdlc-config.json so skill preamble can locate server/start.py
+  writeIfChanged(
+    path.join(PROJECT_DIR, '.sdlc-config.json'),
+    JSON.stringify({ package_dir: PACKAGE_DIR }, null, 2) + '\n',
+  );
+
   // Ensure .gitignore has the right entries
   const gitignorePath = path.join(PROJECT_DIR, '.gitignore');
   const requiredEntries = [
