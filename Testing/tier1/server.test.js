@@ -178,7 +178,7 @@ describe('sdlc server url — reads .sdlc-server.json', () => {
 
   after(() => proj.cleanup());
 
-  it.skip('sdlc server url prints the URL', () => {
+  it('sdlc server url prints the URL', () => {
     let output;
     try {
       output = execFileSync(process.execPath, ['bin/sdlc.js', 'server', 'url'], {
@@ -215,8 +215,8 @@ describe('sdlc server url — no .sdlc-server.json exits with 1', () => {
 
   after(() => proj.cleanup());
 
-  it.skip('exits with code 1', () => assert.strictEqual(exitCode, 1));
-  it.skip('prints not running message', () => {
+  it('exits with code 1', () => assert.strictEqual(exitCode, 1));
+  it('prints not running message', () => {
     assert.ok(
       output && (output.includes('not running') || output.includes('No server') || output.includes('server')),
       `Expected server-related message in: ${output}`,
