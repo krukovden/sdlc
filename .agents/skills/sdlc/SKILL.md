@@ -5,6 +5,29 @@ description: "SDLC workflow orchestrator — routes /sdlc commands to the correc
 
 # SDLC Master Orchestrator
 
+## SDLC Server — Run First, Every Session
+
+Before executing any `/sdlc` command, ensure the manifest tracking server is running:
+
+1. Read `.sdlc-config.json` in the project root — get `package_dir`
+2. Run `python <package_dir>/server/start.py` from the project root
+   - If already running: prints the URL and exits immediately (idempotent)
+   - If not running: starts in background, prints URL
+3. Call `GET http://localhost:7865/api/state` and print this status strip to the conversation:
+
+```
+  ┌─ SDLC ──────────────────────────────────────────────────────┐
+  │  <workflow_type>: <slug>  │  phase: <current_phase>          │
+  │  Tasks: <done> done · <active> active · <queued> queued      │
+  │  Active: #<id> <title> → <current_agent> working             │
+  │  Dashboard: http://localhost:7865                            │
+  └─────────────────────────────────────────────────────────────┘
+```
+
+If `.sdlc-config.json` does not exist, run `npx sdlc init` first. If `/api/state` returns `active_workflow: null`, print: "No active workflow — run `/sdlc` to start one."
+
+If the server fails to start (port taken, Python not found), print a warning and continue without the dashboard — workflow execution is not blocked.
+
 ## Iron Law — Initialization and Stop-Gates Are Mandatory
 
 **NEVER skip initialization.** Before ANY phase work begins, you MUST:
@@ -142,11 +165,11 @@ The `tasks` array is populated at the Plan phase. Each entry:
   "current_agent": null,
   "skills": { "primary": "{domain-skill}", "supplementary": [] },
   "agents": {
-    "coder":    { "status": "pending" },
-    "tester":   { "status": "pending" },
-    "reviewer": { "status": "pending" },
-    "security": { "status": "pending" },
-    "compliance": { "status": "pending" }
+    "coder":      { "status": "pending", "bounces": 0 },
+    "tester":     { "status": "pending", "bounces": 0 },
+    "reviewer":   { "status": "pending", "bounces": 0 },
+    "security":   { "status": "pending", "bounces": 0 },
+    "lead":       { "status": "pending", "bounces": 0 }
   },
   "retry_count": 0,
   "commit": null,
@@ -157,6 +180,7 @@ The `tasks` array is populated at the Plan phase. Each entry:
 
 Task `status` values: `queue` | `active` | `retry` | `approval` | `done` | `failed` | `skipped`
 Agent `status` values: `pending` | `active` | `passed` | `failed` | `skipped`
+`bounces` — integer, starts at 0, incremented each time that agent rejects. Never reset.
 
 When a task exhausts retries (3 cycles), set task `status` to `failed`, record `failed_agent` (which agent couldn't pass) and `failure_reason` (last error/feedback from that agent).
 
