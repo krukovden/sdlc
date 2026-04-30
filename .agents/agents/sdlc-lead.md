@@ -161,9 +161,10 @@ Read and update `manifest.json` in the workflow folder (`docs/workflows/{type}/{
 
 - **Before starting a phase**: Set `current_phase` and phase `status` to `in_progress`
 - **After phase approval**: Set phase `status` to `approved` with `completed_at` timestamp
-- **Before dispatching an agent**: Set task `status` to `active`, `current_agent` to agent name
-- **After agent completes**: Update agent status to `passed` or `failed`, clear `current_agent`
-- **After task completes**: Set task `status` to `done`, record `commit` hash
+- **Before dispatching an agent**: Set task `status` to `active`, `current_agent` to agent name, agent `status` to `active`
+- **After agent passes**: Set agent `status` to `passed`, clear `current_agent`
+- **After agent rejects**: Set agent `status` to `failed`, increment `agents[role].bounces` by 1, set `current_agent` back to `"coder"` for the fix cycle. `bounces` is never reset — it records the lifetime rejection count for that agent on that task.
+- **After task completes**: Set task `status` to `done`, record `commit` hash, clear `current_agent`, set all remaining agent statuses to `passed`
 - Track `isolation` (worktree or current-branch) and `branch` name
 
 The dashboard polls `manifest.json` every 2 seconds. If you skip manifest updates, the dashboard shows stale data and the user loses visibility into what's happening.
