@@ -13,7 +13,7 @@ sdlc-doc/*
 .claude/
 .github/
 .codex/
-AGENTS.md
+/AGENTS.md
 
 # Testing runtime artifacts
 Testing/runs/

@@ -547,12 +547,10 @@ function generateCopilot(skills, _installedPlugins, sourceDir = PACKAGE_DIR) {
   }
 
   // copilot-instructions.md
-  const agentsMdPath = path.join(sourceDir, 'AGENTS.md');
+  const agentsMdPath = path.join(sourceDir, '.sdlc', 'AGENTS.md');
   if (fs.existsSync(agentsMdPath)) {
     const instructions = readFile(agentsMdPath);
     const copilotInstructions = instructions
-      .replace(/## Agents\n\nAgent roles are defined in `.agents\/agents\/`:/,
-        '## Agents\n\nAgent roles are defined in `.sdlc/agents/`. Use the corresponding agent for each role:')
       .replace(/- sdlc-lead/g, '- @sdlc-lead')
       .replace(/- sdlc-coder/g, '- @sdlc-coder')
       .replace(/- sdlc-tester/g, '- @sdlc-tester')
@@ -711,7 +709,7 @@ function setupCommon() {
 
   // Copy AGENTS.md to project root
   let agentsMdWritten = false;
-  const agentsMdSrc = path.join(PACKAGE_DIR, 'AGENTS.md');
+  const agentsMdSrc = path.join(PACKAGE_DIR, '.sdlc', 'AGENTS.md');
   if (fs.existsSync(agentsMdSrc)) {
     writeIfChanged(path.join(PROJECT_DIR, 'AGENTS.md'), readFile(agentsMdSrc));
     agentsMdWritten = true;

@@ -22,7 +22,7 @@ function httpGet(url) {
   });
 }
 
-function waitForServer(url, timeout = 8000) {
+function waitForServer(url, timeout = 15000) {
   const start = Date.now();
   return new Promise((resolve, reject) => {
     const attempt = () => {
