@@ -51,8 +51,8 @@ describe('init claude', () => {
     });
   }
 
-  it('creates skill files matching .agents/skills/', () => {
-    const skillsDir = path.join(proj.dir, '.agents', 'skills');
+  it('creates skill files matching .sdlc/skills/', () => {
+    const skillsDir = path.join(proj.dir, '.sdlc', 'skills');
     const skillNames = fs.readdirSync(skillsDir, { withFileTypes: true })
       .filter(d => d.isDirectory())
       .map(d => d.name);
@@ -63,7 +63,7 @@ describe('init claude', () => {
   });
 
   it('skill content matches source', () => {
-    const skillsDir = path.join(proj.dir, '.agents', 'skills');
+    const skillsDir = path.join(proj.dir, '.sdlc', 'skills');
     const skillNames = fs.readdirSync(skillsDir, { withFileTypes: true })
       .filter(d => d.isDirectory())
       .map(d => d.name);

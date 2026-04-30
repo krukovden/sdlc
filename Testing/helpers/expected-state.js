@@ -53,10 +53,10 @@ function parseSlashCommands() {
   return names.sort();
 }
 
-// --- Parse .agents/workflows/*.md ---
+// --- Parse .sdlc/workflows/*.md ---
 
 function parseWorkflows() {
-  const workflowsDir = path.join(SDLC_ROOT, '.agents', 'workflows');
+  const workflowsDir = path.join(SDLC_ROOT, '.sdlc', 'workflows');
   const workflows = {};
 
   for (const file of fs.readdirSync(workflowsDir).filter(f => f.endsWith('.md'))) {
@@ -87,10 +87,10 @@ function parseWorkflows() {
   return workflows;
 }
 
-// --- Parse .agents/ directory structure ---
+// --- Parse .sdlc/ directory structure ---
 
 function parseSkills() {
-  const skillsDir = path.join(SDLC_ROOT, '.agents', 'skills');
+  const skillsDir = path.join(SDLC_ROOT, '.sdlc', 'skills');
   return fs.readdirSync(skillsDir, { withFileTypes: true })
     .filter(d => d.isDirectory())
     .map(d => d.name)
@@ -98,14 +98,14 @@ function parseSkills() {
 }
 
 function parseGuidelines() {
-  const guidelinesDir = path.join(SDLC_ROOT, '.agents', 'guidelines');
+  const guidelinesDir = path.join(SDLC_ROOT, '.sdlc', 'guidelines');
   return fs.readdirSync(guidelinesDir)
     .filter(f => f.endsWith('.md'))
     .sort();
 }
 
 function parseAgentFiles() {
-  const agentsDir = path.join(SDLC_ROOT, '.agents', 'agents');
+  const agentsDir = path.join(SDLC_ROOT, '.sdlc', 'agents');
   return fs.readdirSync(agentsDir)
     .filter(f => f.endsWith('.md'))
     .map(f => f.replace('.md', ''))
