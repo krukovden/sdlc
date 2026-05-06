@@ -156,9 +156,14 @@ const AGENT_META = {
     extra: 'Your task will be provided by the Lead agent or the Tester agent (in autonomous mode). Review code and produce a verdict.\nDo NOT modify any code. Output: PASS / NEEDS CHANGES / FAIL.\n\nIn autonomous pipeline mode (pipeline_mode: autonomous), if verdict is NEEDS CHANGES spawn Coder for retry (max 3). Once PASS, spawn the Security agent as a subagent and pass the pipeline context forward.',
   },
   'sdlc-security': {
-    description: 'SDLC security analysis agent — checks for injection risks, auth/authz issues, secrets exposure, input validation gaps, and sensitive data logging. In autonomous mode, spawns Coder for retry fixes. Terminal node — returns completed pipeline context. Read-only — produces assessment only.',
+    description: 'SDLC security analysis agent — checks for injection risks, auth/authz issues, secrets exposure, input validation gaps, and sensitive data logging. In autonomous mode, spawns Coder for retry fixes and Rubber Duck (when enabled) to continue the pipeline. Read-only — produces assessment only.',
     guidelines: ['error-handling.md', 'conventions.md'],
-    extra: 'Your task will be provided by the Lead agent or the Reviewer agent (in autonomous mode). Analyze code for security issues.\nDo NOT modify any code. Output: PASS / SECURITY ISSUE.\n\nIn autonomous pipeline mode (pipeline_mode: autonomous), if assessment is SECURITY ISSUE spawn Coder for retry (max 3). Once PASS, return the completed pipeline context. You are the terminal node — do NOT spawn any further agents.',
+    extra: 'Your task will be provided by the Lead agent or the Reviewer agent (in autonomous mode). Analyze code for security issues.\nDo NOT modify any code. Output: PASS / SECURITY ISSUE.\n\nIn autonomous pipeline mode (pipeline_mode: autonomous), if assessment is SECURITY ISSUE spawn Coder for retry (max 3). Once PASS, check pipeline_context.task.rubber_duck.enabled — if true, spawn the Rubber Duck agent; if false, you are the terminal node and return the completed pipeline context.',
+  },
+  'sdlc-rubber-duck': {
+    description: 'SDLC second-opinion agent — runs on a different model than primary agents to catch blind spots Reviewer and Security miss. Enabled per-task at plan phase. Terminal node — returns completed pipeline context. Read-only — produces verdict only, does not modify code.',
+    guidelines: ['principles.md', 'conventions.md'],
+    extra: 'Your task will be provided by the Security agent (in autonomous mode). Review with a fresh perspective — you run on a different model than the agents before you.\nDo NOT modify any code. Do NOT repeat checks already passed by Reviewer and Security. Focus on what was missed. Output: PASS / NEEDS CHANGES / FAIL.\n\nIn autonomous pipeline mode (pipeline_mode: autonomous), if verdict is NEEDS CHANGES spawn Coder for retry (max 3, independent budget from Reviewer and Security). Once PASS, you are the terminal node — return the completed pipeline context.',
   },
 };
 
@@ -534,7 +539,8 @@ function generateCopilot(skills, _installedPlugins, sourceDir = PACKAGE_DIR) {
       .replace(/- sdlc-coder/g, '- @sdlc-coder')
       .replace(/- sdlc-tester/g, '- @sdlc-tester')
       .replace(/- sdlc-reviewer/g, '- @sdlc-reviewer')
-      .replace(/- sdlc-security/g, '- @sdlc-security');
+      .replace(/- sdlc-security/g, '- @sdlc-security')
+      .replace(/- sdlc-rubber-duck/g, '- @sdlc-rubber-duck');
     track(writeIfChanged(path.join(dir, 'copilot-instructions.md'), copilotInstructions));
   }
 
