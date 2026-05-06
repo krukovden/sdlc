@@ -1,6 +1,6 @@
 {
   "name": "@krukovden/sdlc",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "AI-powered SDLC system with 5 specialized agents. Walks through clarify, research, design, plan, implement with approval gates. Works with Claude Code, GitHub Copilot, and OpenAI Codex.",
   "bin": {
     "sdlc": "./bin/sdlc.js"
@@ -13,8 +13,7 @@
   "files": [
     "bin/",
     "setup.js",
-    ".agents/",
-    "AGENTS.md",
+    ".sdlc/",
     "README.md"
   ],
   "keywords": [

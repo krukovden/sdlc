@@ -49,7 +49,7 @@ foreach ($tool in $config.tools) {
         -Phases $config.phases.$tool
 
     # Collect artifact file list for cross-tool comparison
-    $workflowFolder = Get-WorkflowFolder -WorkflowsDir (Join-Path $workspace "docs\workflows")
+    $workflowFolder = Get-WorkflowFolder -WorkflowsDir (Join-Path $workspace "sdlc-doc\workflows")
     $files = @()
     Get-ChildItem -Path $workflowFolder -Recurse -File | ForEach-Object {
         $rel = $_.FullName.Substring($workflowFolder.Length + 1).Replace("\", "/")

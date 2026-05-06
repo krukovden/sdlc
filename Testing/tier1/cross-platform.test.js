@@ -13,11 +13,12 @@ const EXPECTED_COMMANDS = state.commandNames;
 const GUIDELINES = state.allGuidelines;
 
 const AGENT_KEYWORDS = {
-  'sdlc-lead':     (content) => content.includes('orchestrat'),
-  'sdlc-coder':    (content) => content.includes('implementation') || content.includes('writes code'),
-  'sdlc-tester':   (content) => content.includes('test'),
-  'sdlc-reviewer': (content) => content.includes('review'),
-  'sdlc-security': (content) => content.includes('security'),
+  'sdlc-lead':         (content) => content.includes('orchestrat'),
+  'sdlc-coder':        (content) => content.includes('implementation') || content.includes('writes code'),
+  'sdlc-tester':       (content) => content.includes('test'),
+  'sdlc-reviewer':     (content) => content.includes('review'),
+  'sdlc-security':     (content) => content.includes('security'),
+  'sdlc-rubber-duck':  (content) => content.includes('second-opinion') || content.includes('different model') || content.includes('rubber'),
 };
 
 const PHASE_NAMES = ['clarify', 'research', 'design', 'plan', 'implement'];

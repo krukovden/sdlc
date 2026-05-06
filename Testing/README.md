@@ -17,13 +17,13 @@ pwsh Testing/tier2/scenario-1-consistency/run.ps1  # run scenario directly
 
 ## Tier 1 — File Generation Tests
 
-**Purpose:** Verify that `npx sdlc init` generates correct platform config files from `.agents/` source of truth.
+**Purpose:** Verify that `npx sdlc init` generates correct platform config files from `.sdlc/` source of truth.
 
 **Runtime:** ~2 seconds. No AI calls, no network, no API keys. Runs on every commit via CI.
 
 **How it works:**
 1. Creates a temp directory in `Testing/runs/`
-2. Copies `.agents/`, `setup.js`, `bin/` from the package root
+2. Copies `.sdlc/`, `setup.js`, `bin/` from the package root
 3. Runs `node bin/sdlc.js init <platform>`
 4. Asserts generated files exist, have correct content, and follow expected patterns
 5. Cleans up the temp directory (unless `--keep`)
@@ -47,7 +47,7 @@ pwsh Testing/tier2/scenario-1-consistency/run.ps1  # run scenario directly
 |------|---------|
 | `temp-project.js` | Creates temp test directories with package files |
 | `file-assertions.js` | Assertion utilities: file existence, content patterns, format validation |
-| `expected-state.js` | Parses expected state from `setup.js` and `.agents/` directory |
+| `expected-state.js` | Parses expected state from `setup.js` and `.sdlc/` directory |
 
 ## Tier 2 — End-to-End Scenario Tests
 
@@ -92,7 +92,7 @@ scenario-2-context-switch/
 
 What it validates:
 - Tool A starts a workflow, stops at a specific phase
-- Tool B resumes from the same `docs/workflows/`, continues, stops
+- Tool B resumes from the same `sdlc-doc/workflows/`, continues, stops
 - Tool C resumes and finishes
 - Final `manifest.json` has all phases `approved`
 

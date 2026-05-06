@@ -8,9 +8,10 @@ const command = process.argv[2];
 const args = process.argv.slice(3);
 
 const COMMANDS = {
-  init:   'Initialize SDLC system in current project',
-  server: 'Manage the SDLC manifest tracking server',
-  help:   'Show this help message',
+  init:      'Initialize SDLC system in current project',
+  uninstall: 'Remove all SDLC-generated files from current project',
+  server:    'Manage the SDLC manifest tracking server',
+  help:      'Show this help message',
 };
 
 function showHelp() {
@@ -32,6 +33,10 @@ function showHelp() {
   console.log('    npx sdlc -u copilot           Regenerate GitHub Copilot only');
   console.log('    npx sdlc -u codex             Regenerate OpenAI Codex only');
   console.log('    npx sdlc -u all               Regenerate all platforms');
+  console.log('\n  Uninstall options:');
+  console.log('    npx sdlc uninstall            Remove all SDLC-generated files');
+  console.log('    npx sdlc --uninstall          Same (long flag form)');
+  console.log('    npx sdlc -x                   Same (short flag form)');
   console.log('\n  Server options:');
   console.log('    npx sdlc server               Start server (alias for start)');
   console.log('    npx sdlc server start         Ensure running, print URL');
@@ -41,14 +46,14 @@ function showHelp() {
 }
 
 function serverJson() {
-  const p = path.join(process.cwd(), '.sdlc-server.json');
+  const p = path.join(process.cwd(), '\.sdlc/server.json');
   if (!fs.existsSync(p)) return null;
   try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; }
 }
 
 function handleServer(sub) {
   const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-  const startPy = path.join(path.resolve(__dirname, '..'), '.agents', 'assets', 'server', 'start.py');
+  const startPy = path.join(path.resolve(__dirname, '..'), '.sdlc', 'assets', 'server', 'start.py');
   const action = sub || 'start';
 
   if (action === 'start') {
@@ -96,13 +101,13 @@ function handleServer(sub) {
     const req = http.request(
       { hostname: 'localhost', port: data.port, path: '/stop', method: 'POST' },
       () => {
-        try { fs.unlinkSync(path.join(process.cwd(), '.sdlc-server.json')); } catch {}
+        try { fs.unlinkSync(path.join(process.cwd(), '\.sdlc/server.json')); } catch {}
         console.log('  Server stopped.');
         process.exit(0);
       },
     );
     req.on('error', () => {
-      try { fs.unlinkSync(path.join(process.cwd(), '.sdlc-server.json')); } catch {}
+      try { fs.unlinkSync(path.join(process.cwd(), '\.sdlc/server.json')); } catch {}
       console.log('  Server stopped (was not responding).');
       process.exit(0);
     });
@@ -114,12 +119,20 @@ function handleServer(sub) {
   process.exit(1);
 }
 
-// Handle -u / --update flag
-const updateIdx = process.argv.includes('-u')
-  ? process.argv.indexOf('-u')
-  : process.argv.indexOf('--update');
+// Handle -x / --uninstall flag (must be checked BEFORE -u/--update)
+const uninstallIdx = process.argv.includes('-x')
+  ? process.argv.indexOf('-x')
+  : process.argv.indexOf('--uninstall');
 
-if (updateIdx !== -1) {
+if (uninstallIdx !== -1) {
+  process.env.SDLC_COMMAND = 'uninstall';
+  process.env.SDLC_PACKAGE_DIR = path.resolve(__dirname, '..');
+  process.argv = [process.argv[0], path.resolve(__dirname, '..', 'setup.js')];
+  require('../setup.js');
+} else if (process.argv.includes('-u') || process.argv.includes('--update')) {
+  const updateIdx = process.argv.includes('-u')
+    ? process.argv.indexOf('-u')
+    : process.argv.indexOf('--update');
   const nextArg = process.argv[updateIdx + 1];
   if (nextArg && !nextArg.startsWith('-')) {
     process.env.SDLC_UPDATE_PLATFORM = nextArg;

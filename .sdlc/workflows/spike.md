@@ -84,7 +84,7 @@ The spike's artifacts can be referenced when starting a subsequent Feature or Re
 ## Folder Structure
 
 ```
-docs/workflows/spike/{YYYY-MM-DD}-{slug}/
+sdlc-doc/workflows/spike/{YYYY-MM-DD}-{slug}/
   manifest.json
   00-clarify.md
   01-research.md

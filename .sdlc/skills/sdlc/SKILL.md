@@ -9,8 +9,8 @@ description: "SDLC workflow orchestrator — routes /sdlc commands to the correc
 
 Before executing any `/sdlc` command, ensure the manifest tracking server is running:
 
-1. Read `.sdlc-config.json` in the project root — get `package_dir`
-2. Run `python <package_dir>/.agents/assets/server/start.py` from the project root
+1. Read `\.sdlc/config.json` in the project root — get `package_dir`
+2. Run `python <package_dir>/.sdlc/assets/server/start.py` from the project root
    - If already running: prints the URL and exits immediately (idempotent)
    - If not running: starts in background, prints URL
 3. Call `GET http://localhost:7865/api/state` and print this status strip to the conversation:
@@ -24,7 +24,7 @@ Before executing any `/sdlc` command, ensure the manifest tracking server is run
   └─────────────────────────────────────────────────────────────┘
 ```
 
-If `.sdlc-config.json` does not exist, run `npx sdlc init` first. If `/api/state` returns `active_workflow: null`, print: "No active workflow — run `/sdlc` to start one."
+If `\.sdlc/config.json` does not exist, run `npx sdlc init` first. If `/api/state` returns `active_workflow: null`, print: "No active workflow — run `/sdlc` to start one."
 
 If the server fails to start (port taken, Python not found), print a warning and continue without the dashboard — workflow execution is not blocked.
 
@@ -34,7 +34,7 @@ If the server fails to start (port taken, Python not found), print a warning and
 1. Confirm workflow type with user
 2. Ask about git isolation (worktree or current branch)
 3. Ask about HTML dashboard
-4. Create `docs/workflows/{type}/{date}-{slug}/manifest.json`
+4. Create `sdlc-doc/workflows/{type}/{date}-{slug}/manifest.json`
 5. Generate `dashboard.html` (if accepted)
 6. Start the local HTTP server (if dashboard enabled)
 
@@ -127,7 +127,7 @@ If user declines, skip — the console progress table (printed by Lead agent) is
 
 Create the folder structure:
 ```
-docs/workflows/{type}/{YYYY-MM-DD}-{slug}/
+sdlc-doc/workflows/{type}/{YYYY-MM-DD}-{slug}/
   manifest.json
 ```
 
@@ -217,7 +217,7 @@ After a phase is approved (by the user, or automatically if `--auto-approve`):
 ## Resume Mode
 
 When invoked with `mode=resume`:
-1. Scan all `manifest.json` files under `docs/workflows/`
+1. Scan all `manifest.json` files under `sdlc-doc/workflows/`
 2. Filter to workflows that are **not complete** (any phase without status `approved`)
 3. If **one** incomplete workflow found — resume it automatically
 4. If **multiple** incomplete workflows found — list them and ask the user which one to resume (unless `--auto-approve` is set, in which case pick the most recent)
@@ -232,7 +232,7 @@ When invoked with `mode=resume`:
 ## Single-Phase Mode
 
 When invoked with a specific phase (e.g., `phase=research`):
-1. Scan `docs/workflows/` for incomplete workflows (same logic as Resume Mode steps 1-5)
+1. Scan `sdlc-doc/workflows/` for incomplete workflows (same logic as Resume Mode steps 1-5)
 2. If found, run only that phase within the existing workflow
 3. If no active workflow, create a new one with the phase as the starting point
 4. Apply artifact gating — check that prerequisite artifacts exist (warn if missing, don't block)

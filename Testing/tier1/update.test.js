@@ -17,7 +17,7 @@ describe('-u auto-detect: updates installed platforms', () => {
   before(async () => {
     proj = await create({ tool: 'all' });
     fs.appendFileSync(
-      path.join(proj.dir, '.agents', 'skills', 'architect', 'SKILL.md'),
+      path.join(proj.dir, '.sdlc', 'skills', 'architect', 'SKILL.md'),
       '\n<!-- test-update-marker -->',
     );
     execFileSync(process.execPath, ['bin/sdlc.js', '-u'], {
@@ -33,8 +33,8 @@ describe('-u auto-detect: updates installed platforms', () => {
     assertFileContains(proj.dir, '.claude/skills/SKILL.architect.md', '<!-- test-update-marker -->');
   });
 
-  it('preserves .agents/ — does not overwrite project skill', () => {
-    assertFileContains(proj.dir, '.agents/skills/architect/SKILL.md', '<!-- test-update-marker -->');
+  it('preserves .sdlc/ — does not overwrite project skill', () => {
+    assertFileContains(proj.dir, '.sdlc/skills/architect/SKILL.md', '<!-- test-update-marker -->');
   });
 });
 
@@ -54,7 +54,7 @@ describe('-u claude: only updates .claude/', () => {
 
     // Modify skill so .claude/ skill content changes
     fs.appendFileSync(
-      path.join(proj.dir, '.agents', 'skills', 'architect', 'SKILL.md'),
+      path.join(proj.dir, '.sdlc', 'skills', 'architect', 'SKILL.md'),
       '\n<!-- claude-only-marker -->',
     );
 
@@ -84,7 +84,7 @@ describe('--update long form works', () => {
   before(async () => {
     proj = await create({ tool: 'claude' });
     fs.appendFileSync(
-      path.join(proj.dir, '.agents', 'skills', 'architect', 'SKILL.md'),
+      path.join(proj.dir, '.sdlc', 'skills', 'architect', 'SKILL.md'),
       '\n<!-- long-form-marker -->',
     );
     execFileSync(process.execPath, ['bin/sdlc.js', '--update'], {
@@ -109,7 +109,7 @@ describe('-u all: explicit all updates all platforms', () => {
   before(async () => {
     proj = await create({ tool: 'all' });
     fs.appendFileSync(
-      path.join(proj.dir, '.agents', 'skills', 'architect', 'SKILL.md'),
+      path.join(proj.dir, '.sdlc', 'skills', 'architect', 'SKILL.md'),
       '\n<!-- all-marker -->',
     );
     execFileSync(process.execPath, ['bin/sdlc.js', '-u', 'all'], {
@@ -126,16 +126,16 @@ describe('-u all: explicit all updates all platforms', () => {
   });
 });
 
-// ─── error: no .agents/ in project ──────────────────────────────────────────
+// ─── error: no .sdlc/ in project ──────────────────────────────────────────
 
-describe('error: no .agents/ in project', () => {
+describe('error: no .sdlc/ in project', () => {
   let exitCode;
   let output;
   let proj;
 
   before(async () => {
     proj = await create({});
-    fs.rmSync(path.join(proj.dir, '.agents'), { recursive: true, force: true });
+    fs.rmSync(path.join(proj.dir, '.sdlc'), { recursive: true, force: true });
     try {
       execFileSync(process.execPath, ['bin/sdlc.js', '-u'], {
         cwd: proj.dir,
@@ -155,8 +155,8 @@ describe('error: no .agents/ in project', () => {
     assert.strictEqual(exitCode, 1);
   });
 
-  it('prints message referencing .agents/', () => {
-    assert.ok(output.includes('.agents/'), `Expected .agents/ in output, got: ${output}`);
+  it('prints message referencing .sdlc/', () => {
+    assert.ok(output.includes('.sdlc/'), `Expected .sdlc/ in output, got: ${output}`);
   });
 });
 
@@ -168,7 +168,7 @@ describe('error: no platform directories found', () => {
   let proj;
 
   before(async () => {
-    proj = await create({}); // .agents/ exists, no platform dirs
+    proj = await create({}); // .sdlc/ exists, no platform dirs
     try {
       execFileSync(process.execPath, ['bin/sdlc.js', '-u'], {
         cwd: proj.dir,

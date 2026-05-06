@@ -175,7 +175,7 @@ You can:
 
 ## Manifest Management
 
-Read and update `manifest.json` in the workflow folder (`docs/workflows/{type}/{date}-{slug}/manifest.json`).
+Read and update `manifest.json` in the workflow folder (`sdlc-doc/workflows/{type}/{date}-{slug}/manifest.json`).
 
 **Update manifest at EVERY state change — not retroactively, not in batches:**
 

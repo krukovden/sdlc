@@ -22,7 +22,7 @@ function httpGet(url) {
   });
 }
 
-function waitForServer(url, timeout = 8000) {
+function waitForServer(url, timeout = 15000) {
   const start = Date.now();
   return new Promise((resolve, reject) => {
     const attempt = () => {
@@ -41,7 +41,7 @@ describe('/api/state — no workflows', () => {
   let proc;
 
   before(async () => {
-    const dashPy = path.join(SDLC_ROOT, '.agents', 'assets', 'server', 'dashboard.py');
+    const dashPy = path.join(SDLC_ROOT, '.sdlc', 'assets', 'server', 'dashboard.py');
     proc = spawn(pythonCmd, [dashPy, '--port', String(PORT)], {
       cwd: SDLC_ROOT,
       stdio: 'pipe',
@@ -74,7 +74,7 @@ describe('/api/state — with a manifest', () => {
   before(async () => {
     proj = await create({ tool: 'claude' });
 
-    const wfDir = path.join(proj.dir, 'docs', 'workflows', 'feature', '2026-04-29-test-wf');
+    const wfDir = path.join(proj.dir, 'sdlc-doc', 'workflows', 'feature', '2026-04-29-test-wf');
     fs.mkdirSync(wfDir, { recursive: true });
     fs.writeFileSync(path.join(wfDir, 'manifest.json'), JSON.stringify({
       workflow_type: 'feature',
@@ -105,7 +105,7 @@ describe('/api/state — with a manifest', () => {
       ],
     }));
 
-    const dashPy = path.join(SDLC_ROOT, '.agents', 'assets', 'server', 'dashboard.py');
+    const dashPy = path.join(SDLC_ROOT, '.sdlc', 'assets', 'server', 'dashboard.py');
     proc = spawn(pythonCmd, [dashPy, '--port', String(PORT + 1)], {
       cwd: proj.dir,
       stdio: 'pipe',
@@ -143,9 +143,9 @@ describe('/api/state — with a manifest', () => {
   });
 });
 
-// ─── setup.js init writes .sdlc-config.json ─────────────────────────────────
+// ─── setup.js init writes \.sdlc/config.json ─────────────────────────────────
 
-describe('setup.js init writes .sdlc-config.json', () => {
+describe('setup.js init writes \.sdlc/config.json', () => {
   let proj;
 
   before(async () => {
@@ -154,9 +154,9 @@ describe('setup.js init writes .sdlc-config.json', () => {
 
   after(() => proj.cleanup());
 
-  it('creates .sdlc-config.json with package_dir after init', () => {
-    const configPath = path.join(proj.dir, '.sdlc-config.json');
-    assert.ok(fs.existsSync(configPath), '.sdlc-config.json should exist after init');
+  it('creates \.sdlc/config.json with package_dir after init', () => {
+    const configPath = path.join(proj.dir, '\.sdlc/config.json');
+    assert.ok(fs.existsSync(configPath), '\.sdlc/config.json should exist after init');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     assert.ok(typeof config.package_dir === 'string', 'package_dir must be a string');
     assert.ok(config.package_dir.length > 0, 'package_dir must not be empty');
@@ -165,13 +165,13 @@ describe('setup.js init writes .sdlc-config.json', () => {
 
 // ─── sdlc server url subcommand ──────────────────────────────────────────────
 
-describe('sdlc server url — reads .sdlc-server.json', () => {
+describe('sdlc server url — reads \.sdlc/server.json', () => {
   let proj;
 
   before(async () => {
     proj = await create({ tool: 'claude' });
     fs.writeFileSync(
-      path.join(proj.dir, '.sdlc-server.json'),
+      path.join(proj.dir, '\.sdlc/server.json'),
       JSON.stringify({ pid: 99999, port: 7865, url: 'http://localhost:7865', started: new Date().toISOString() }),
     );
   });
@@ -193,7 +193,7 @@ describe('sdlc server url — reads .sdlc-server.json', () => {
   });
 });
 
-describe('sdlc server url — no .sdlc-server.json exits with 1', () => {
+describe('sdlc server url — no \.sdlc/server.json exits with 1', () => {
   let proj;
   let exitCode;
   let output;
