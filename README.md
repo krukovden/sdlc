@@ -17,10 +17,11 @@ Traditional software development needs many roles: analyst, architect, developer
   Lead agent    analyzes your codebase        → research
   Lead agent    designs the solution          → design
   Lead agent    breaks it into tasks          → plan
-  Coder agent   writes the code              ─┐
-  Tester agent  writes and runs tests         │ implement
-  Reviewer agent checks code quality          │ (per task)
-  Security agent scans for vulnerabilities   ─┘
+  Coder agent        writes the code              ─┐
+  Tester agent       writes and runs tests         │ implement
+  Reviewer agent     checks code quality            │ (per task)
+  Security agent     scans for vulnerabilities      │
+  Rubber Duck agent  second opinion, different model─┘
 ```
 
 You approve after each phase. Tasks run continuously without stopping between them.
@@ -82,8 +83,10 @@ This rewrites `.claude/`, `.github/`, and `.codex/` from the updated `.agents/` 
 ### 3. Each task goes through the agent pipeline
 
 ```
-  Lead dispatches → Coder → Tester → Reviewer → Security → Lead checks compliance
+  Lead dispatches → Coder → Tester → Reviewer → Security → Rubber Duck → Lead checks compliance
 ```
+
+**Rubber Duck** is a cross-model second-opinion reviewer. It runs on a different model than the rest of the pipeline — on Claude Code that means Opus reviews what Sonnet wrote, and vice versa. On Copilot, it uses a different provider entirely (GPT when Claude is primary, Claude when GPT is primary). Lead enables it per task based on complexity; you can adjust at the plan approval gate.
 
 If any agent fails, the system retries up to 3 times. If it still fails, it stops and asks you what to do.
 
@@ -100,7 +103,7 @@ The system starts a local server and opens a **live Kanban dashboard** in your b
 
 ![SDLC Live Kanban Dashboard](docs/images/kanban-dashboard.png)
 
-Three columns update every 2 seconds as agents work. Each task card shows the active agent as an animated pill, agent pipeline progress (Coder → Tester → Reviewer → Security → Lead), and a bounce badge (↺ n) when an agent had to re-review. The dashboard launches automatically when you start a workflow and survives session restarts — the server runs in the background and is rediscovered on the next `/sdlc` command.
+Three columns update every 2 seconds as agents work. Each task card shows the active agent as an animated pill, agent pipeline progress (Coder → Tester → Reviewer → Security → Rubber Duck → Lead), and a bounce badge (↺ n) when an agent had to re-review. The dashboard launches automatically when you start a workflow and survives session restarts — the server runs in the background and is rediscovered on the next `/sdlc` command.
 
 ### 6. Everything is saved to files
 
@@ -108,7 +111,7 @@ Each workflow creates a folder in `docs/workflows/` with all artifacts. Next ses
 
 ---
 
-## Five Agents
+## Six Agents
 
 | Agent | What it does | Can modify code? |
 |-------|-------------|:----------------:|
@@ -117,6 +120,7 @@ Each workflow creates a folder in `docs/workflows/` with all artifacts. Next ses
 | **Tester** | Writes and runs tests | Yes |
 | **Reviewer** | Reviews code quality, outputs PASS or FAIL | No |
 | **Security** | Scans for vulnerabilities, outputs PASS or FAIL | No |
+| **Rubber Duck** | Cross-model second opinion — runs on a different model to catch what same-model review misses | No |
 
 ---
 
@@ -138,6 +142,13 @@ The system works from any AI coding tool. `.agents/` is the single source of tru
 
 Run `npx github:krukovden/sdlc` once per project — it generates the right config for your tool.
 
+**Parallel execution** is automatic and platform-aware:
+- **Claude Code** — uses Agent Teams to run independent tasks simultaneously
+- **GitHub Copilot** — uses Copilot Fleet for parallel task dispatch
+- **Fallback** — sequential execution when neither is available
+
+**Rubber Duck model** is also platform-aware: on Claude Code it switches between Sonnet and Opus; on Copilot it crosses providers (Claude ↔ GPT).
+
 ---
 
 ## Project Structure
@@ -145,7 +156,7 @@ Run `npx github:krukovden/sdlc` once per project — it generates the right conf
 ```
 .agents/                  ← committed, shared across all tools
 ├── skills/               ← what each agent knows (17 skills)
-├── agents/               ← how each agent behaves (5 agents)
+├── agents/               ← how each agent behaves (6 agents)
 ├── guidelines/           ← coding standards everyone follows
 ├── workflows/            ← phase definitions per workflow type
 └── assets/
