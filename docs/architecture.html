@@ -74,6 +74,7 @@
   .agent-box.tester { border-color: var(--cyan); }
   .agent-box.reviewer { border-color: var(--purple); }
   .agent-box.security { border-color: var(--red); }
+  .agent-box.rubber-duck { border-color: var(--orange); }
   .arrow { color: var(--muted); font-size: 22px; padding: 0 6px; flex-shrink: 0; }
 
   /* Platform Table */
@@ -137,6 +138,7 @@
       <li><strong style="color:var(--cyan);">Tester agent</strong> — writes and runs tests</li>
       <li><strong style="color:var(--purple);">Reviewer agent</strong> — quality verdict</li>
       <li><strong style="color:var(--red);">Security agent</strong> — vulnerability scan</li>
+      <li><strong style="color:var(--orange);">Rubber Duck agent</strong> — cross-model second opinion</li>
     </ul>
   </div>
 </div>
@@ -267,7 +269,7 @@
     </div>
     <div class="phase-content">
       <div class="phase-title" style="color:var(--green);">Implement</div>
-      <div class="phase-detail">Multi-agent execution. For each task: Lead → Coder → Tester → Reviewer → Security → Lead (compliance).</div>
+      <div class="phase-detail">Multi-agent execution. For each task: Lead → Coder → Tester → Reviewer → Security → Rubber Duck (if enabled) → Lead (compliance).</div>
       <div class="phase-gate">⏸ USER APPROVAL per task → 04-implementation-log.md</div>
     </div>
   </div>
@@ -282,21 +284,21 @@
     <div class="phases">
       <span class="active">clarify</span> → <span class="active">research</span> → <span class="active">design</span> → <span class="active">plan</span> → <span class="active">implement</span>
     </div>
-    <div style="font-size:11px; color:var(--muted); margin-top:8px;">6 design artifacts. All 5 agents active.</div>
+    <div style="font-size:11px; color:var(--muted); margin-top:8px;">6 design artifacts. All 6 agents active.</div>
   </div>
   <div class="type-card">
     <div class="type-name" style="color:var(--orange);">Bugfix</div>
     <div class="phases">
       <span class="active">clarify</span> → <span class="active">research</span> → <span class="active">design</span> → <span class="active">plan</span> → <span class="active">implement</span>
     </div>
-    <div style="font-size:11px; color:var(--muted); margin-top:8px;">5 design artifacts. All 5 agents active.</div>
+    <div style="font-size:11px; color:var(--muted); margin-top:8px;">5 design artifacts. All 6 agents active.</div>
   </div>
   <div class="type-card">
     <div class="type-name" style="color:var(--cyan);">Refactor</div>
     <div class="phases">
       <span class="active">clarify</span> → <span class="active">research</span> → <span class="active">design</span> → <span class="active">plan</span> → <span class="active">implement</span>
     </div>
-    <div style="font-size:11px; color:var(--muted); margin-top:8px;">5 design artifacts. Security optional.</div>
+    <div style="font-size:11px; color:var(--muted); margin-top:8px;">5 design artifacts. Security + Rubber Duck optional.</div>
   </div>
   <div class="type-card">
     <div class="type-name" style="color:var(--purple);">Spike</div>
@@ -363,6 +365,17 @@
     </ul>
   </div>
   <div class="arrow">→</div>
+  <div class="agent-box rubber-duck">
+    <div class="name" style="color:var(--orange);">RUBBER DUCK</div>
+    <div style="font-size:11px; color:var(--yellow); margin-bottom:6px;">2nd opinion</div>
+    <ul class="reads">
+      <li>full pipeline ctx</li>
+      <li>reviewer result</li>
+      <li>security result</li>
+      <li>different model</li>
+    </ul>
+  </div>
+  <div class="arrow">→</div>
   <div class="agent-box lead">
     <div class="name" style="color:var(--accent);">LEAD</div>
     <div style="font-size:11px; color:var(--green); margin-bottom:6px;">compliance</div>
@@ -373,6 +386,7 @@
     </ul>
   </div>
 </div>
+<p style="color:var(--muted); font-size:12px; text-align:center; margin-top:8px;">Rubber Duck is enabled per-task at plan phase. On Claude Code: Sonnet ↔ Opus. On Copilot: Claude ↔ GPT.</p>
 
 <!-- ==================== CONTEXT ISOLATION ==================== -->
 <h2>6. Agent Context Isolation</h2>
@@ -421,6 +435,15 @@
     </ul>
     <div style="margin-top:8px; font-size:11px; color:var(--red);">Does NOT read: testing, clarify, other tasks</div>
   </div>
+  <div class="card" style="border-color:var(--orange);">
+    <div class="card-header"><span class="badge badge-agent" style="background:#2a1a0a; color:var(--orange);">Rubber Duck</span> Reads</div>
+    <ul>
+      <li><strong>full pipeline context</strong> — coder, tester, reviewer, security outputs</li>
+      <li><strong>task spec</strong> — acceptance criteria</li>
+      <li><strong>domain skill</strong> — same as Coder</li>
+    </ul>
+    <div style="margin-top:8px; font-size:11px; color:var(--orange);">Runs on opposite model. Skips what Reviewer + Security already caught.</div>
+  </div>
 </div>
 
 <!-- ==================== ARTIFACT FLOW ==================== -->
@@ -450,8 +473,8 @@ docs/workflows/feature/2026-04-06-notifications/
 │       └──► one task at a time to each agent
 │
 └── 04-implementation-log.md   ← Phase 5 output
-        ├── Task 1: ✅ Coder → Tester → Reviewer → Security → Compliant
-        ├── Task 2: ✅ Coder → Tester → Reviewer → Security → Compliant
+        ├── Task 1: ✅ Coder → Tester → Reviewer → Security → Rubber Duck → Compliant
+        ├── Task 2: ✅ Coder → Tester → Reviewer → Security [duck disabled] → Compliant
         └── Task 3: ⏳ In progress...
 </pre>
 </div>
@@ -462,11 +485,12 @@ docs/workflows/feature/2026-04-06-notifications/
 <table>
   <tr><th>Capability</th><th>Claude Code</th><th>Copilot</th><th>Codex</th></tr>
   <tr><td>Isolated subagents</td><td class="yes">YES</td><td class="yes">YES</td><td class="yes">YES</td></tr>
-  <tr><td>Agent teams</td><td class="yes">YES (experimental)</td><td class="no">—</td><td class="no">—</td></tr>
+  <tr><td>Agent teams</td><td class="yes">YES (Agent Teams)</td><td class="yes">YES (Fleet)</td><td class="no">—</td></tr>
   <tr><td>Inter-agent messaging</td><td class="yes">YES</td><td class="no">—</td><td class="no">—</td></tr>
   <tr><td>Shared task list</td><td class="yes">YES</td><td class="no">—</td><td class="no">—</td></tr>
-  <tr><td>Parallel execution</td><td class="yes">worktrees</td><td class="no">—</td><td class="yes">threads (6)</td></tr>
+  <tr><td>Parallel execution</td><td class="yes">Agent Teams + worktrees</td><td class="yes">Copilot Fleet</td><td class="yes">threads (6)</td></tr>
   <tr><td>Sequential pipeline</td><td class="yes">YES</td><td class="yes">simulate</td><td class="yes">YES</td></tr>
+  <tr><td>Cross-model review</td><td class="yes">Sonnet ↔ Opus</td><td class="yes">Claude ↔ GPT</td><td class="no">—</td></tr>
   <tr><td>Skills from .agents/</td><td class="sym">symlink</td><td class="yes">native</td><td class="yes">native</td></tr>
   <tr><td>Hooks</td><td class="yes">settings.json</td><td class="yes">hooks/*.json</td><td class="yes">hooks.json</td></tr>
   <tr><td>MCP servers</td><td class="yes">YES</td><td class="yes">YES</td><td class="yes">YES</td></tr>
