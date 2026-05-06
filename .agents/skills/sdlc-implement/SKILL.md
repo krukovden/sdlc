@@ -20,7 +20,8 @@ If missing, present warning with options to run plan first, proceed anyway, or a
 At the start of the implement phase, detect which dispatch mode is available:
 
 1. **Agent Teams** — check if `TeamCreate` tool is available. If yes, use team mode.
-2. **Subagents** — fallback. Use the `Agent` tool for sequential dispatch.
+2. **Copilot Fleet** — check if `gh copilot fleet` is available. If yes, use fleet mode.
+3. **Subagents** — fallback. Use the `Agent` tool for sequential dispatch.
 
 ### Team Mode (Agent Teams available)
 
@@ -30,9 +31,19 @@ When Agent Teams is available, create a team and spawn teammates for **independe
 2. Create an agent team with the Lead as coordinator
 3. For independent tasks: spawn teammates in parallel, each using the appropriate agent type (`sdlc-coder`, `sdlc-tester`, etc.)
 4. For dependent tasks: wait for dependencies to complete, then spawn
-5. Each teammate follows the full pipeline: Coder → Tester → Reviewer → Security
+5. Each teammate follows the full pipeline: Coder → Tester → Reviewer → Security → Rubber Duck (if enabled)
 6. Teammates report results via the shared task list
 7. Lead performs compliance check after each task completes
+
+### Copilot Fleet Mode
+
+When Copilot Fleet is available, dispatch independent tasks in parallel via fleet:
+
+1. Read `03-plan.md` and identify independent tasks
+2. Dispatch independent tasks simultaneously via `gh copilot fleet`
+3. Each fleet worker runs the full pipeline: Coder → Tester → Reviewer → Security → Rubber Duck (if enabled)
+4. Dependent tasks wait for their dependencies before dispatching
+5. Lead performs compliance check after each task completes
 
 **Example:** If Task 1 and Task 4 are independent, spawn two Coder teammates simultaneously. If Task 2 depends on Task 1, wait for Task 1 to finish before spawning Task 2's Coder.
 
@@ -44,9 +55,9 @@ For each task in `03-plan.md`, dispatch agents in this order:
 
 | Workflow | Agent Sequence |
 |----------|---------------|
-| Feature | Coder → Tester → Reviewer → Security → Lead (compliance check) |
-| Bugfix | Coder → Tester → Reviewer → Security → Lead (compliance check) |
-| Refactor | Coder → Tester → Reviewer → Security (if activated) → Lead (compliance check) |
+| Feature | Coder → Tester → Reviewer → Security → Rubber Duck (if enabled) → Lead (compliance check) |
+| Bugfix | Coder → Tester → Reviewer → Security → Rubber Duck (if enabled) → Lead (compliance check) |
+| Refactor | Coder → Tester → Reviewer → Security (if activated) → Rubber Duck (if enabled) → Lead (compliance check) |
 
 ## Task Execution Mode
 
@@ -239,6 +250,7 @@ Update `04-implementation-log.md` after each task. This log is the data source f
 - **Tester**: {test results — X tests, all passing}
 - **Reviewer**: PASS
 - **Security**: PASS
+- **Rubber Duck**: PASS (claude-opus-4-7) — {brief summary} | disabled
 - **Compliance**: COMPLIANT
 - **Retries**: {0 or N — which agent, what was fixed}
 - **Commit**: {commit hash} — {commit message}

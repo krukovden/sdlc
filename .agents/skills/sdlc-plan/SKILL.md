@@ -47,6 +47,7 @@ Each task in `03-plan.md` must follow this format:
 ### Task {N}: {title}
 - **Domain skill**: {backend-node | frontend-angular | backend-csharp | devops | architect}
 - **Mode**: {autonomous | mediated (reason)}
+- **Rubber Duck**: {enabled — rationale | disabled — rationale}
 - **Depends on**: {Task N | none}
 - **Acceptance criteria**:
   - {criterion 1}
@@ -56,6 +57,23 @@ Each task in `03-plan.md` must follow this format:
   - {02-design/artifact.md}
 - **Notes**: {any additional context for the Coder agent}
 ```
+
+## Rubber Duck Evaluation
+
+For every task, evaluate whether Rubber Duck should be enabled and set `rubber_duck` accordingly.
+
+**Enable when ANY of these apply:**
+- Task touches authentication, authorization, payments, or PII
+- Task crosses service boundaries (frontend ↔ backend, service ↔ external)
+- Task has 3+ files changed or complex multi-step logic
+- Task modifies shared infrastructure, CI/CD, or data models
+
+**Disable when ALL of these apply:**
+- Simple CRUD, config changes, or documentation
+- Single-file changes with no side effects
+- Trivial refactors (rename, extract, reorganize)
+
+State the rationale for each decision. The user can override at the plan stop-gate.
 
 ## Security Agent Decision (Refactor only)
 
@@ -105,13 +123,13 @@ Every task MUST declare its dependencies explicitly. Follow these rules:
 
 In the Task Summary table, use explicit references:
 
-| Task | Title | Domain Skill | Mode | Depends On | Can Parallel? |
-|------|-------|-------------|------|------------|:------------:|
-| 1 | Create domain entities | backend-node | autonomous | — | — |
-| 2 | Create repository layer | backend-node | autonomous | Task 1 | No |
-| 3 | Create service layer | backend-node | autonomous | Task 2 | No |
-| 4 | Add API validation schemas | backend-node | autonomous | Task 1 | Yes (with 2,3) |
-| 5 | Create Angular component | frontend-angular | autonomous | Task 3 | No |
+| Task | Title | Domain Skill | Mode | Rubber Duck | Depends On | Can Parallel? |
+|------|-------|-------------|------|:-----------:|------------|:------------:|
+| 1 | Create domain entities | backend-node | autonomous | ✗ | — | — |
+| 2 | Create repository layer | backend-node | autonomous | ✗ | Task 1 | No |
+| 3 | Create service layer | backend-node | autonomous | ✓ | Task 2 | No |
+| 4 | Add API validation schemas | backend-node | autonomous | ✗ | Task 1 | Yes (with 2,3) |
+| 5 | Create Angular component | frontend-angular | autonomous | ✓ | Task 3 | No |
 
 ### Dependency Validation Checklist
 
@@ -130,7 +148,8 @@ Before finalizing the plan, verify:
 5. Define clear acceptance criteria per task (testable, specific)
 6. **Analyze dependencies between tasks** — data flow, imports, layer ordering
 7. **Identify which tasks can run in parallel** (independent tasks)
-8. Produce `03-plan.md`
+8. **Evaluate Rubber Duck** for each task using the heuristics above
+9. Produce `03-plan.md`
 
 ## Output Artifact
 
@@ -143,10 +162,10 @@ Write `03-plan.md` to the workflow folder:
 {1-2 sentences describing what will be implemented}
 
 ## Task Summary
-| Task | Title | Domain Skill | Mode | Depends On | Can Parallel? |
-|------|-------|-------------|------|------------|:------------:|
-| 1 | {title} | {skill} | {mode} | — | — |
-| 2 | {title} | {skill} | {mode} | Task 1 | No |
+| Task | Title | Domain Skill | Mode | Rubber Duck | Depends On | Can Parallel? |
+|------|-------|-------------|------|:-----------:|------------|:------------:|
+| 1 | {title} | {skill} | {mode} | ✗ | — | — |
+| 2 | {title} | {skill} | {mode} | ✓ | Task 1 | No |
 
 ## Security Agent
 {Activated / Skipped — rationale (Refactor only)}
@@ -169,4 +188,14 @@ Write `03-plan.md` to the workflow folder:
 
 If `--auto-approve` is active, skip this gate — proceed immediately to the next phase.
 
-Otherwise, present the stop-gate with task summary table, total task count, and Security activation decision (for Refactor).
+Otherwise, present the stop-gate with task summary table, total task count, Security activation decision (Refactor only), and Rubber Duck configuration:
+
+```
+Rubber Duck Configuration:
+  Task 1: ✗ disabled — {rationale}
+  Task 2: ✓ enabled  — {rationale}
+
+To override: rubber_duck on|off <task-number>
+```
+
+The user can toggle any task's Rubber Duck setting before approving.

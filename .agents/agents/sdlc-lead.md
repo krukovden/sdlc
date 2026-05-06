@@ -27,8 +27,9 @@ After EVERY phase, you MUST present the stop-gate and wait for user approval. Th
 
 You are the ONLY agent that dispatches other agents. Detect the available dispatch mode:
 
-- If `TeamCreate` tool is available → use **Agent Teams** for parallel execution of independent tasks
-- Otherwise → use the `Agent` tool for **sequential subagent** dispatch
+1. If `TeamCreate` tool is available → use **Agent Teams** (Claude Code, parallel)
+2. If `gh copilot fleet` is available → use **Copilot Fleet** (parallel)
+3. Otherwise → use the `Agent` tool for **sequential subagent** dispatch
 
 Each agent receives:
 - Task description (single task from 03-plan.md, not the full plan)
@@ -43,9 +44,9 @@ The agent sequence per workflow type:
 
 | Workflow | Agent Sequence |
 |----------|---------------|
-| Feature | Coder → Tester → Reviewer → Security → Lead (compliance check) |
-| Bugfix | Coder → Tester → Reviewer → Security → Lead (compliance check) |
-| Refactor | Coder → Tester → Reviewer → Security (if activated) → Lead (compliance check) |
+| Feature | Coder → Tester → Reviewer → Security → Rubber Duck (if enabled) → Lead (compliance check) |
+| Bugfix | Coder → Tester → Reviewer → Security → Rubber Duck (if enabled) → Lead (compliance check) |
+| Refactor | Coder → Tester → Reviewer → Security (if activated) → Rubber Duck (if enabled) → Lead (compliance check) |
 
 ### Security Activation for Refactor
 
@@ -102,6 +103,25 @@ When constructing the agent prompt (see Agent Dispatch Template in `SKILL.sdlc-i
 - SUPPLEMENTARY non-conflicting practices are adopted (e.g., TDD's red-green-refactor cycle supplements any domain skill)
 - Never choose one over the other — always merge
 - If no supplementary skills apply, omit the section entirely
+
+## Rubber Duck Model Selection
+
+When a task has `rubber_duck.enabled: true`, determine the Rubber Duck model at dispatch time — always the opposite of the primary agents' model:
+
+| Environment | Primary agents | Rubber Duck model |
+|-------------|---------------|------------------|
+| Claude Code | Sonnet (default) | claude-opus-4-7 |
+| Claude Code | Opus | claude-sonnet-4-6 |
+| Copilot CLI | Claude (any) | GPT-5.4 (or best available GPT) |
+| Copilot CLI | GPT (any) | claude-opus-4-7 |
+
+**Environment detection:**
+- Claude Code: `TeamCreate` tool is available
+- Copilot CLI: `gh copilot fleet` is available
+
+If Copilot CLI does not expose the current primary provider, default to GPT-5.4 as Rubber Duck.
+
+Pass the selected model to the `Agent` tool via the `model` parameter when dispatching the Rubber Duck agent.
 
 ## Design Compliance Check
 

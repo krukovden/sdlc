@@ -103,8 +103,28 @@ When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_c
      summary: {1-2 sentence security summary}
      retries: {number of retry cycles used, 0 if none}
    ```
-2. **You are the terminal node** — do NOT spawn any further agents
-3. Return the completed pipeline context to your caller
+2. Check `pipeline_context.task.rubber_duck.enabled`:
+   - **If `true`**: spawn the **Rubber Duck** agent as a subagent:
+     ```
+     You are the Rubber Duck agent for the SDLC workflow.
+     pipeline_mode: autonomous
+     pipeline_context: {pass the full updated pipeline context}
+
+     ## Your Task
+     {task description from the plan}
+
+     ## Domain Skill
+     {domain skill path}
+
+     ## What Was Done Before You
+     Coder: {pipeline_context.coder.summary}
+     Tester: {pipeline_context.tester.results}
+     Reviewer: PASS — {pipeline_context.reviewer.summary}
+     Security: PASS — {your summary}
+     ```
+     Wait for Rubber Duck's response — it will return the completed pipeline context.
+     Return that context to your caller.
+   - **If `false`**: you are the terminal node — return the completed pipeline context to your caller
 
 ## Verdict Format
 
