@@ -92,7 +92,7 @@ Record these in `manifest.json` as `skills.supplementary[]`.
 
 ### Step 3: Merge at Dispatch
 
-When constructing the agent prompt (see Agent Dispatch Template in `SKILL.sdlc-implement.md`):
+When constructing the agent prompt (see Agent Dispatch Template in `.sdlc/skills/sdlc/references/implement.md`):
 
 1. The **primary skill** is listed under `## Domain Skill (PRIMARY — these patterns govern)`
 2. Each **supplementary skill** is listed under `## Supplementary Skills (MERGED — adopt non-conflicting practices)`

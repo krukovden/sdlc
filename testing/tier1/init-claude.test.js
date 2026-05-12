@@ -51,18 +51,18 @@ describe('init claude', () => {
     });
   }
 
-  it('creates skill files matching .sdlc/skills/', () => {
+  it('creates skill directories matching .sdlc/skills/ (standard Agent Skills layout)', () => {
     const skillsDir = path.join(proj.dir, '.sdlc', 'skills');
     const skillNames = fs.readdirSync(skillsDir, { withFileTypes: true })
       .filter(d => d.isDirectory())
       .map(d => d.name);
 
     for (const name of skillNames) {
-      assertFileExists(proj.dir, `.claude/skills/SKILL.${name}.md`);
+      assertFileExists(proj.dir, `.claude/skills/${name}/SKILL.md`);
     }
   });
 
-  it('skill content matches source', () => {
+  it('SKILL.md content matches source for every skill', () => {
     const skillsDir = path.join(proj.dir, '.sdlc', 'skills');
     const skillNames = fs.readdirSync(skillsDir, { withFileTypes: true })
       .filter(d => d.isDirectory())
@@ -71,13 +71,34 @@ describe('init claude', () => {
     for (const name of skillNames) {
       const sourcePath = path.join(skillsDir, name, 'SKILL.md');
       if (!fs.existsSync(sourcePath)) continue;
-      const generatedPath = path.join(proj.dir, '.claude', 'skills', `SKILL.${name}.md`);
+      const generatedPath = path.join(proj.dir, '.claude', 'skills', name, 'SKILL.md');
       const sourceContent = fs.readFileSync(sourcePath, 'utf8');
       const generatedContent = fs.readFileSync(generatedPath, 'utf8');
       assert.strictEqual(
         generatedContent,
         sourceContent,
         `Skill content mismatch for ${name}`,
+      );
+    }
+  });
+
+  it('copies references/ subdirectories verbatim (progressive disclosure)', () => {
+    // The unified sdlc skill keeps phase-specific content under references/.
+    // Verify the generator carries the whole tree, not just SKILL.md.
+    const sourceRefs = path.join(proj.dir, '.sdlc', 'skills', 'sdlc', 'references');
+    if (!fs.existsSync(sourceRefs)) return; // skip if no skill uses references/
+
+    const expectedFiles = fs.readdirSync(sourceRefs);
+    assert.ok(expectedFiles.length > 0, 'sdlc/references/ unexpectedly empty');
+
+    for (const file of expectedFiles) {
+      const src = path.join(sourceRefs, file);
+      const dest = path.join(proj.dir, '.claude', 'skills', 'sdlc', 'references', file);
+      assert.ok(fs.existsSync(dest), `Missing copied reference: .claude/skills/sdlc/references/${file}`);
+      assert.strictEqual(
+        fs.readFileSync(dest, 'utf8'),
+        fs.readFileSync(src, 'utf8'),
+        `Reference content mismatch for ${file}`,
       );
     }
   });

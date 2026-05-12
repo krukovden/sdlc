@@ -1,8 +1,3 @@
----
-name: sdlc-implement
-description: "SDLC implement phase — executes plan tasks via multi-agent team (Lead, Coder, Tester, Reviewer, Security). Each agent runs in isolated context with only the artifacts it needs. Produces 04-implementation-log.md."
----
-
 # SDLC Implement Phase
 
 ## Purpose

@@ -29,8 +29,8 @@ describe('-u auto-detect: updates installed platforms', () => {
 
   after(() => proj.cleanup());
 
-  it('updates .claude/skills/SKILL.architect.md with the skill change', () => {
-    assertFileContains(proj.dir, '.claude/skills/SKILL.architect.md', '<!-- test-update-marker -->');
+  it('updates .claude/skills/architect/SKILL.md with the skill change', () => {
+    assertFileContains(proj.dir, '.claude/skills/architect/SKILL.md', '<!-- test-update-marker -->');
   });
 
   it('preserves .sdlc/ — does not overwrite project skill', () => {
@@ -67,8 +67,8 @@ describe('-u claude: only updates .claude/', () => {
 
   after(() => proj.cleanup());
 
-  it('updates .claude/skills/SKILL.architect.md', () => {
-    assertFileContains(proj.dir, '.claude/skills/SKILL.architect.md', '<!-- claude-only-marker -->');
+  it('updates .claude/skills/architect/SKILL.md', () => {
+    assertFileContains(proj.dir, '.claude/skills/architect/SKILL.md', '<!-- claude-only-marker -->');
   });
 
   it('does not modify .github/copilot-instructions.md', () => {
@@ -97,7 +97,7 @@ describe('--update long form works', () => {
   after(() => proj.cleanup());
 
   it('updates .claude/ skill with --update flag', () => {
-    assertFileContains(proj.dir, '.claude/skills/SKILL.architect.md', '<!-- long-form-marker -->');
+    assertFileContains(proj.dir, '.claude/skills/architect/SKILL.md', '<!-- long-form-marker -->');
   });
 });
 
@@ -122,7 +122,7 @@ describe('-u all: explicit all updates all platforms', () => {
   after(() => proj.cleanup());
 
   it('updates .claude/ skill', () => {
-    assertFileContains(proj.dir, '.claude/skills/SKILL.architect.md', '<!-- all-marker -->');
+    assertFileContains(proj.dir, '.claude/skills/architect/SKILL.md', '<!-- all-marker -->');
   });
 });
 

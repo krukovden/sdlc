@@ -1,8 +1,3 @@
----
-name: sdlc-research
-description: "SDLC research phase — analyzes current codebase state relevant to the task. Produces 01-research.md artifact. Focus varies by workflow type: domain models (feature), failure trace (bugfix), dependency map (refactor), options inventory (spike)."
----
-
 # SDLC Research Phase
 
 ## Purpose
