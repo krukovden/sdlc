@@ -5,7 +5,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 const SDLC_ROOT = path.resolve(__dirname, '..', '..');
-const RUNS_DIR = path.join(SDLC_ROOT, 'Testing', 'runs');
+const RUNS_DIR = path.join(SDLC_ROOT, 'testing', 'runs');
 
 /**
  * Recursively copy a directory tree from `src` to `dest`. The destination
