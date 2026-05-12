@@ -345,8 +345,9 @@ Use @sdlc-lead to orchestrate.
 // Generator: Claude Code (.claude/)
 // ---------------------------------------------------------------------------
 
-function generateClaude(skills, installedPlugins) {
+function generateClaude(skills, installedPlugins, sourceDir = PACKAGE_DIR) {
   const dir = path.join(PROJECT_DIR, '.claude');
+  const skillsSourceRoot = path.join(sourceDir, '.sdlc', 'skills');
   const results = { created: 0, updated: 0, unchanged: 0, files: [] };
 
   function write(filePath, content) {
@@ -531,13 +532,25 @@ ${meta.extra}
     write(path.join(dir, 'agents', `${name}.md`), content);
   }
 
-  // Skills — copy each .sdlc/skills/<name>/ as .claude/skills/<name>/.
+  // Skills — copy each <sourceDir>/.sdlc/skills/<name>/ as .claude/skills/<name>/.
   // Preserves the standard Agent Skills layout: SKILL.md plus optional references/
   // and assets/ subdirectories. This is the same on-disk structure Codex CLI and
   // Cursor expect, so the source layout is platform-agnostic.
+  //
+  // sourceDir is PACKAGE_DIR on init (read fresh from the package) and PROJECT_DIR
+  // on update (read user-edited skills from the project's .sdlc/ tree).
+  const claudeSkillsDir = path.join(dir, 'skills');
+  if (fs.existsSync(claudeSkillsDir)) {
+    for (const entry of fs.readdirSync(claudeSkillsDir, { withFileTypes: true })) {
+      if (entry.isFile() && /^SKILL\..+\.md$/.test(entry.name)) {
+        fs.unlinkSync(path.join(claudeSkillsDir, entry.name));
+      }
+    }
+  }
+
   for (const skill of skills) {
-    const srcDir = path.join(AGENTS_SRC, 'skills', skill.name);
-    const destDir = path.join(dir, 'skills', skill.name);
+    const srcDir = path.join(skillsSourceRoot, skill.name);
+    const destDir = path.join(claudeSkillsDir, skill.name);
     for (const rel of listFilesRecursive(srcDir, srcDir)) {
       write(path.join(destDir, rel), readFile(path.join(srcDir, rel)));
     }

@@ -126,6 +126,119 @@ describe('-u all: explicit all updates all platforms', () => {
   });
 });
 
+// ─── -u claude: reads skills from PROJECT, not PACKAGE ────────────────────
+//
+// Regression guard: when SDLC_PACKAGE_DIR !== PROJECT_DIR, update must read
+// skill files from the project's .sdlc/ tree so local edits survive. Previous
+// versions silently regenerated from the packaged defaults, reverting user
+// customisations to skills like sdlc/SKILL.md and sdlc/references/*.md.
+
+describe('-u claude: reads skill content from project, not package', () => {
+  let proj;
+  let pkgDir;
+
+  before(async () => {
+    proj = await create({ tool: 'claude' });
+
+    // Build a separate "package" dir that hosts its own copy of bin/setup.js/.sdlc.
+    // bin/sdlc.js derives SDLC_PACKAGE_DIR from its own __dirname (line ~141), so
+    // running pkgDir/bin/sdlc.js — not proj.dir/bin/sdlc.js — is the only way to
+    // make PACKAGE_DIR and PROJECT_DIR diverge in this test.
+    pkgDir = path.join(path.dirname(proj.dir), `tier1-pkg-${Date.now()}`);
+
+    function copyTree(src, dest) {
+      fs.mkdirSync(dest, { recursive: true });
+      for (const e of fs.readdirSync(src, { withFileTypes: true })) {
+        const s = path.join(src, e.name);
+        const d = path.join(dest, e.name);
+        if (e.isDirectory()) copyTree(s, d);
+        else fs.copyFileSync(s, d);
+      }
+    }
+    copyTree(path.join(proj.dir, '.sdlc'), path.join(pkgDir, '.sdlc'));
+    fs.copyFileSync(path.join(proj.dir, 'setup.js'), path.join(pkgDir, 'setup.js'));
+    fs.copyFileSync(path.join(proj.dir, 'package.json'), path.join(pkgDir, 'package.json'));
+    copyTree(path.join(proj.dir, 'bin'), path.join(pkgDir, 'bin'));
+
+    // Diverge the marker: project's skill says "from-project", package's says "from-package".
+    fs.writeFileSync(
+      path.join(proj.dir, '.sdlc', 'skills', 'architect', 'SKILL.md'),
+      '---\nname: architect\ndescription: test\n---\nfrom-project\n',
+    );
+    fs.writeFileSync(
+      path.join(pkgDir, '.sdlc', 'skills', 'architect', 'SKILL.md'),
+      '---\nname: architect\ndescription: test\n---\nfrom-package\n',
+    );
+
+    execFileSync(process.execPath, [path.join(pkgDir, 'bin', 'sdlc.js'), '-u', 'claude'], {
+      cwd: proj.dir,
+      stdio: 'pipe',
+    });
+  });
+
+  after(() => {
+    proj.cleanup();
+    if (!process.env.SDLC_TEST_KEEP) {
+      fs.rmSync(pkgDir, { recursive: true, force: true });
+    }
+  });
+
+  it('regenerates .claude/skills/architect/SKILL.md from the project tree', () => {
+    assertFileContains(proj.dir, '.claude/skills/architect/SKILL.md', 'from-project');
+  });
+
+  it('does not fall back to the package copy', () => {
+    const content = fs.readFileSync(
+      path.join(proj.dir, '.claude/skills/architect/SKILL.md'),
+      'utf8',
+    );
+    assert.ok(!content.includes('from-package'),
+      `Expected project content, got package content: ${content}`);
+  });
+});
+
+// ─── -u claude: prunes legacy flat SKILL.<name>.md files ──────────────────
+//
+// Regression guard for layout migration: pre-migration installs stored skills
+// as `.claude/skills/SKILL.<name>.md`. After migration to `.claude/skills/<name>/SKILL.md`,
+// `-u claude` must delete the orphaned flat files so they are not left
+// unmanaged outside the manifest (which would survive `uninstall`).
+
+describe('-u claude: prunes legacy flat SKILL.<name>.md files', () => {
+  let proj;
+  let orphanPath;
+
+  before(async () => {
+    proj = await create({ tool: 'claude' });
+
+    // Simulate an upgrade from the previous flat layout: drop a leftover
+    // `SKILL.legacy-skill.md` next to the new directory layout. The update
+    // pass should sweep it.
+    orphanPath = path.join(proj.dir, '.claude', 'skills', 'SKILL.legacy-skill.md');
+    fs.writeFileSync(orphanPath, '---\nname: legacy-skill\n---\nold-flat-layout\n');
+
+    execFileSync(process.execPath, ['bin/sdlc.js', '-u', 'claude'], {
+      cwd: proj.dir,
+      stdio: 'pipe',
+      env: { ...process.env, SDLC_PACKAGE_DIR: proj.dir },
+    });
+  });
+
+  after(() => proj.cleanup());
+
+  it('deletes the legacy flat-layout skill file', () => {
+    assert.ok(!fs.existsSync(orphanPath),
+      `Expected legacy ${orphanPath} to be pruned, but it still exists`);
+  });
+
+  it('still produces the directory-layout SKILL.md for real skills', () => {
+    assert.ok(
+      fs.existsSync(path.join(proj.dir, '.claude/skills/architect/SKILL.md')),
+      'Expected .claude/skills/architect/SKILL.md to exist after update',
+    );
+  });
+});
+
 // ─── error: no .sdlc/ in project ──────────────────────────────────────────
 
 describe('error: no .sdlc/ in project', () => {
