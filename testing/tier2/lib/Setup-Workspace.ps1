@@ -1,4 +1,4 @@
-# Testing/tier2/lib/Setup-Workspace.ps1
+# testing/tier2/lib/Setup-Workspace.ps1
 
 function New-SharedWorkspace {
     [CmdletBinding()]

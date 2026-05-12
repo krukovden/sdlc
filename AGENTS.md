@@ -16,7 +16,7 @@ This is the **source repo** for the npm package `@krukovden/sdlc` — an AI-powe
 | `setup.js` | Per-platform generator (functions: `generateClaude`, `generateCopilot`, `generateCodex`) |
 | `bin/sdlc.js` | npm bin entry |
 | `bin/sync-copilot-instructions.js` | Copies `AGENTS.md` → `.github/copilot-instructions.md` (Copilot has no native import) |
-| `Testing/` | `tier1` (contract) + `tier2` (visual / E2E) test suites |
+| `testing/` | `tier1` (contract) + `tier2` (visual / E2E) test suites |
 
 ## Cross-platform agent coverage for this source repo
 
@@ -43,7 +43,7 @@ This copies `AGENTS.md` → `.github/copilot-instructions.md` cross-platform via
 1. Add `.sdlc/agents/<name>.md` with the role description
 2. Register in `AGENT_META` block of `setup.js`
 3. If user-invocable, add to `SLASH_COMMANDS` (per-platform: `claude` / `copilot` / `codex` strings)
-4. Add a contract test in `Testing/tier1/`
+4. Add a contract test in `testing/tier1/`
 5. Run `npm test`
 
 ## Tests

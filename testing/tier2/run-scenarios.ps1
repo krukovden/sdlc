@@ -1,10 +1,10 @@
-# Testing/tier2/run-scenarios.ps1
+# testing/tier2/run-scenarios.ps1
 #
 # Discovers and runs tier2 scenario tests.
 #
 # Usage:
-#   pwsh Testing/tier2/run-scenarios.ps1                              # all scenarios
-#   pwsh Testing/tier2/run-scenarios.ps1 -Scenario scenario-1-consistency  # specific scenario
+#   pwsh testing/tier2/run-scenarios.ps1                              # all scenarios
+#   pwsh testing/tier2/run-scenarios.ps1 -Scenario scenario-1-consistency  # specific scenario
 [CmdletBinding()]
 param(
     [string]$Scenario

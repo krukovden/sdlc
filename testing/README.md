@@ -6,13 +6,13 @@ Two-tier test suite for the SDLC multi-agent system. Tier 1 validates the packag
 
 ```bash
 npm test                                           # tier 1 (default)
-node Testing/run.js tier1                          # same as above
-node Testing/run.js tier1 --keep                   # keep generated files for inspection
-node Testing/run.js --clean                        # delete Testing/runs/
+node testing/run.js tier1                          # same as above
+node testing/run.js tier1 --keep                   # keep generated files for inspection
+node testing/run.js --clean                        # delete testing/runs/
 
-pwsh Testing/tier2/run-scenarios.ps1               # all tier 2 scenarios
-pwsh Testing/tier2/run-scenarios.ps1 -Scenario scenario-1-consistency   # one scenario
-pwsh Testing/tier2/scenario-1-consistency/run.ps1  # run scenario directly
+pwsh testing/tier2/run-scenarios.ps1               # all tier 2 scenarios
+pwsh testing/tier2/run-scenarios.ps1 -Scenario scenario-1-consistency   # one scenario
+pwsh testing/tier2/scenario-1-consistency/run.ps1  # run scenario directly
 ```
 
 ## Tier 1 — File Generation Tests
@@ -22,13 +22,13 @@ pwsh Testing/tier2/scenario-1-consistency/run.ps1  # run scenario directly
 **Runtime:** ~2 seconds. No AI calls, no network, no API keys. Runs on every commit via CI.
 
 **How it works:**
-1. Creates a temp directory in `Testing/runs/`
+1. Creates a temp directory in `testing/runs/`
 2. Copies `.sdlc/`, `setup.js`, `bin/` from the package root
 3. Runs `node bin/sdlc.js init <platform>`
 4. Asserts generated files exist, have correct content, and follow expected patterns
 5. Cleans up the temp directory (unless `--keep`)
 
-**Tests** (`Testing/tier1/`):
+**Tests** (`testing/tier1/`):
 
 | Test | What it checks |
 |------|---------------|
@@ -41,7 +41,7 @@ pwsh Testing/tier2/scenario-1-consistency/run.ps1  # run scenario directly
 | `workflow-schemas.test.js` | Workflow definition files are valid |
 | `html-structure.test.js` | Generated HTML files are well-formed |
 
-**Helpers** (`Testing/helpers/`):
+**Helpers** (`testing/helpers/`):
 
 | File | Purpose |
 |------|---------|
@@ -61,7 +61,7 @@ pwsh Testing/tier2/scenario-1-consistency/run.ps1  # run scenario directly
 3. `Invoke-Tool.ps1` sends a minimal prompt to the AI tool (e.g. `/sdlc feature --auto-approve "task"`)
 4. `Assert-Workflow.ps1` validates: all phases approved in `manifest.json`, all required artifacts exist
 
-**Scenarios** (`Testing/tier2/`):
+**Scenarios** (`testing/tier2/`):
 
 ### Scenario 1: Consistency
 
@@ -96,7 +96,7 @@ What it validates:
 - Tool C resumes and finishes
 - Final `manifest.json` has all phases `approved`
 
-## Shared Library (`Testing/tier2/lib/`)
+## Shared Library (`testing/tier2/lib/`)
 
 | File | Purpose |
 |------|---------|
@@ -106,7 +106,7 @@ What it validates:
 
 ## Adding a New Scenario
 
-1. Create `Testing/tier2/scenario-N-name/`
+1. Create `testing/tier2/scenario-N-name/`
 2. Add `project/` with the target codebase the AI tools will work on
 3. Add `scenario.json` with task, tools, and phases config
 4. Add `run.ps1` that calls the shared lib functions

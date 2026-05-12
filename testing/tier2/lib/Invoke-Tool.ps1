@@ -1,4 +1,4 @@
-# Testing/tier2/lib/Invoke-Tool.ps1
+# testing/tier2/lib/Invoke-Tool.ps1
 
 function Test-ToolAvailable {
     [CmdletBinding()]

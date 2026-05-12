@@ -18,8 +18,8 @@ sdlc-doc/*
 .github/agents/
 
 # Testing runtime artifacts
-Testing/runs/
-Testing/logs/
-Testing/tmp/
-Testing/tier2/*/Run/
+testing/runs/
+testing/logs/
+testing/tmp/
+testing/tier2/*/Run/
 .superpowers/*

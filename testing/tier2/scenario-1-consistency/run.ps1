@@ -1,4 +1,4 @@
-# Testing/tier2/scenario-1-consistency/run.ps1
+# testing/tier2/scenario-1-consistency/run.ps1
 #
 # Scenario 1: Consistency Test.
 # Runs each tool independently with the same task.

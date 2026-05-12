@@ -1,4 +1,4 @@
-# Testing/tier2/scenario-2-context-switch/run.ps1
+# testing/tier2/scenario-2-context-switch/run.ps1
 #
 # Scenario 2: Context Switching Test.
 # Creates ONE shared workspace, runs each tool in sequence.

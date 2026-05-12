@@ -16,9 +16,9 @@ const reporter = tap ? ' --test-reporter=tap' : '';
 if (clean) {
   if (fs.existsSync(runsDir)) {
     fs.rmSync(runsDir, { recursive: true, force: true });
-    console.log('Removed Testing/runs/');
+    console.log('Removed testing/runs/');
   } else {
-    console.log('Testing/runs/ does not exist');
+    console.log('testing/runs/ does not exist');
   }
   process.exit(0);
 }
@@ -37,7 +37,7 @@ function run(cmd, label) {
   }
 }
 
-const ok = run(`node --test Testing/tier1/*.test.js${reporter}`, 'Tier 1: File Generation Tests');
+const ok = run(`node --test testing/tier1/*.test.js${reporter}`, 'Tier 1: File Generation Tests');
 
 // Show runs location if --keep was used
 if (keep && fs.existsSync(runsDir)) {
@@ -49,9 +49,9 @@ if (keep && fs.existsSync(runsDir)) {
       }
     }
   };
-  console.log('\n--- Test artifacts preserved in Testing/runs/ ---');
+  console.log('\n--- Test artifacts preserved in testing/runs/ ---');
   listDir(runsDir);
-  console.log('\nRun "node Testing/run.js --clean" to remove them.\n');
+  console.log('\nRun "node testing/run.js --clean" to remove them.\n');
 }
 
 process.exit(ok ? 0 : 1);

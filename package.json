@@ -28,11 +28,11 @@
     "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
-    "test": "node Testing/run.js",
-    "test:tier1": "node Testing/run.js tier1",
-    "test:tier2": "node Testing/run.js tier2",
-    "test:all": "node Testing/run.js all",
-    "test:visual": "npx playwright test Testing/tier2/html-visual.test.js",
+    "test": "node testing/run.js",
+    "test:tier1": "node testing/run.js tier1",
+    "test:tier2": "node testing/run.js tier2",
+    "test:all": "node testing/run.js all",
+    "test:visual": "npx playwright test testing/tier2/html-visual.test.js",
     "sync:copilot": "node bin/sync-copilot-instructions.js"
   },
   "license": "MIT"

@@ -1,4 +1,4 @@
-# Testing/tier2/lib/Assert-Workflow.ps1
+# testing/tier2/lib/Assert-Workflow.ps1
 
 function Get-WorkflowFolder {
     [CmdletBinding()]
