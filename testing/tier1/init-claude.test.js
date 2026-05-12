@@ -82,23 +82,38 @@ describe('init claude', () => {
     }
   });
 
-  it('copies references/ subdirectories verbatim (progressive disclosure)', () => {
+  it('copies references/ tree verbatim (progressive disclosure)', () => {
     // The unified sdlc skill keeps phase-specific content under references/.
-    // Verify the generator carries the whole tree, not just SKILL.md.
+    // Walk the whole tree so nested directories (if added later) are also
+    // verified, not just immediate children.
     const sourceRefs = path.join(proj.dir, '.sdlc', 'skills', 'sdlc', 'references');
     if (!fs.existsSync(sourceRefs)) return; // skip if no skill uses references/
 
-    const expectedFiles = fs.readdirSync(sourceRefs);
+    const walk = (dir, baseDir = dir) => {
+      const out = [];
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          out.push(...walk(full, baseDir));
+        } else {
+          out.push(path.relative(baseDir, full).split(path.sep).join('/'));
+        }
+      }
+      return out;
+    };
+
+    const expectedFiles = walk(sourceRefs);
     assert.ok(expectedFiles.length > 0, 'sdlc/references/ unexpectedly empty');
 
-    for (const file of expectedFiles) {
-      const src = path.join(sourceRefs, file);
-      const dest = path.join(proj.dir, '.claude', 'skills', 'sdlc', 'references', file);
-      assert.ok(fs.existsSync(dest), `Missing copied reference: .claude/skills/sdlc/references/${file}`);
+    const destRefs = path.join(proj.dir, '.claude', 'skills', 'sdlc', 'references');
+    for (const relPath of expectedFiles) {
+      const src = path.join(sourceRefs, relPath);
+      const dest = path.join(destRefs, relPath);
+      assert.ok(fs.existsSync(dest), `Missing copied reference: .claude/skills/sdlc/references/${relPath}`);
       assert.strictEqual(
         fs.readFileSync(dest, 'utf8'),
         fs.readFileSync(src, 'utf8'),
-        `Reference content mismatch for ${file}`,
+        `Reference content mismatch for ${relPath}`,
       );
     }
   });

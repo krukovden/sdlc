@@ -219,7 +219,7 @@ After a phase is approved (by the user, or automatically if `--auto-approve`):
 1. Update manifest: set current phase status to `approved` with `completed_at` timestamp
 2. Advance `current_phase` to the next phase
 3. Set next phase status to `in_progress`
-4. Invoke the next phase skill
+4. Load `references/<next-phase>.md` from this skill and follow its instructions — do NOT invoke a separate phase skill (all phases live in this unified `sdlc` skill under `references/`)
 
 ## Resume Mode
 

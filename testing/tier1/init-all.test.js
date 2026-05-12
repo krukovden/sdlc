@@ -97,9 +97,9 @@ describe('init all', () => {
     record(codexFiles, '.codex');
 
     const conflicts = [];
-    for (const [name, platforms] of byPath) {
+    for (const [relPath, platforms] of byPath) {
       if (platforms.size > 1) {
-        conflicts.push(`"${name}" appears in: ${[...platforms].join(', ')}`);
+        conflicts.push(`"${relPath}" appears in: ${[...platforms].join(', ')}`);
       }
     }
 

@@ -91,7 +91,7 @@ Before fetching content, scan the changed file paths and activate relevant skill
 
 Always load: `enhanced-reviewer` (review gate).
 
-Read the skill files from `.claude/skills/SKILL.<name>.md` — do NOT use the Skill tool (it won't find them).
+Read the skill files from `.claude/skills/<name>/SKILL.md` — do NOT use the Skill tool (it won't find them).
 
 ### Step 4: Fetch file content (ALL IN PARALLEL)
 

@@ -173,7 +173,7 @@ Read these files for context:
 - {path to artifact 2}
 
 ## Domain Skill (PRIMARY — these patterns govern)
-Read: .claude/skills/SKILL.{domain-skill}.md
+Read: .claude/skills/{domain-skill}/SKILL.md
 
 ## Supplementary Skills (MERGED — adopt non-conflicting practices)
 Read: {external-skill-path-1}
