@@ -1,8 +1,3 @@
----
-name: sdlc-implement
-description: "SDLC implement phase — executes plan tasks via multi-agent team (Lead, Coder, Tester, Reviewer, Security). Each agent runs in isolated context with only the artifacts it needs. Produces 04-implementation-log.md."
----
-
 # SDLC Implement Phase
 
 ## Purpose
@@ -178,7 +173,7 @@ Read these files for context:
 - {path to artifact 2}
 
 ## Domain Skill (PRIMARY — these patterns govern)
-Read: .claude/skills/SKILL.{domain-skill}.md
+Read: .claude/skills/{domain-skill}/SKILL.md
 
 ## Supplementary Skills (MERGED — adopt non-conflicting practices)
 Read: {external-skill-path-1}

@@ -98,40 +98,44 @@ describe('rubber-duck source contracts', () => {
     });
   });
 
-  describe('sdlc-plan SKILL.md', () => {
+  describe('sdlc plan reference', () => {
+    const planPath = '.sdlc/skills/sdlc/references/plan.md';
+
     it('has rubber_duck field in task format', () => {
-      assert.ok(readSource('.sdlc/skills/sdlc-plan/SKILL.md').includes('rubber_duck'));
+      assert.ok(readSource(planPath).includes('rubber_duck'));
     });
 
     it('has Rubber Duck Evaluation section', () => {
-      assert.ok(readSource('.sdlc/skills/sdlc-plan/SKILL.md').includes('Rubber Duck Evaluation'));
+      assert.ok(readSource(planPath).includes('Rubber Duck Evaluation'));
     });
 
     it('includes Rubber Duck Configuration in stop-gate', () => {
-      assert.ok(readSource('.sdlc/skills/sdlc-plan/SKILL.md').includes('Rubber Duck Configuration'));
+      assert.ok(readSource(planPath).includes('Rubber Duck Configuration'));
     });
 
     it('has enablement heuristics for auth/PII tasks', () => {
-      const content = readSource('.sdlc/skills/sdlc-plan/SKILL.md');
+      const content = readSource(planPath);
       assert.ok(content.includes('authentication') || content.includes('auth'), 'Missing auth heuristic');
       assert.ok(content.includes('PII'), 'Missing PII heuristic');
     });
   });
 
-  describe('sdlc-implement SKILL.md', () => {
+  describe('sdlc implement reference', () => {
+    const implementPath = '.sdlc/skills/sdlc/references/implement.md';
+
     it('has three dispatch mode options', () => {
-      const content = readSource('.sdlc/skills/sdlc-implement/SKILL.md');
+      const content = readSource(implementPath);
       assert.ok(content.includes('Agent Teams'), 'Missing Agent Teams mode');
       assert.ok(content.includes('Copilot Fleet'), 'Missing Copilot Fleet mode');
       assert.ok(content.includes('sequential'), 'Missing sequential fallback');
     });
 
     it('includes Rubber Duck in pipeline sequences', () => {
-      assert.ok(readSource('.sdlc/skills/sdlc-implement/SKILL.md').includes('Rubber Duck'));
+      assert.ok(readSource(implementPath).includes('Rubber Duck'));
     });
 
     it('has Rubber Duck field in implementation log template', () => {
-      const content = readSource('.sdlc/skills/sdlc-implement/SKILL.md');
+      const content = readSource(implementPath);
       assert.ok(content.includes('Rubber Duck'), 'Implementation log missing Rubber Duck field');
     });
   });

@@ -8,7 +8,13 @@ const SDLC_ROOT = path.resolve(__dirname, '..', '..');
 const RUNS_DIR = path.join(SDLC_ROOT, 'Testing', 'runs');
 
 /**
- * Recursively copy a directory from src to dest.
+ * Recursively copy a directory tree from `src` to `dest`. The destination
+ * is created (mkdir -p) before the walk; subdirectories are recursed into
+ * and regular files are copied with `fs.copyFileSync` (no symlink handling —
+ * tests do not depend on symlinks, and this keeps the helper Windows-safe).
+ * @param {string} src   Absolute or cwd-relative source directory.
+ * @param {string} dest  Absolute or cwd-relative destination directory.
+ * @returns {void}
  */
 function copyDirSync(src, dest) {
   fs.mkdirSync(dest, { recursive: true });

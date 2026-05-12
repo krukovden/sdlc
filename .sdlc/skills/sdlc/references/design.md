@@ -1,8 +1,3 @@
----
-name: sdlc-design
-description: "SDLC design phase — produces architecture artifacts in 02-design/ folder. Artifacts vary by workflow type: architecture diagrams + API contracts (feature), root cause analysis + fix strategy (bugfix), target architecture + migration path (refactor), options analysis + recommendation (spike)."
----
-
 # SDLC Design Phase
 
 ## Purpose

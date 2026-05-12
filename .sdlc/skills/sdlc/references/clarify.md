@@ -1,8 +1,3 @@
----
-name: sdlc-clarify
-description: "SDLC clarify phase — refines task scope, constraints, and success criteria through targeted questions. Produces 00-clarify.md artifact. Question focus varies by workflow type (feature, bugfix, refactor, spike)."
----
-
 # SDLC Clarify Phase
 
 ## Purpose

@@ -160,11 +160,12 @@ describe('cross-platform', () => {
   // ---------------------------------------------------------------------------
   // Test 5: workflow phase sequence matches across Claude and Copilot
   //
-  // Claude expresses phases via individual per-phase command files
-  // (sdlc-clarify.md, sdlc-research.md, etc.) rather than in sdlc.md itself.
-  // We verify Claude has a dedicated command file for each phase, and that the
-  // Copilot sdlc.prompt.md (which has the full phase list in its description)
-  // contains all 5 phase names. Both collectively represent the same sequence.
+  // Each platform exposes the five phases through dedicated command files
+  // (sdlc-clarify.md, sdlc-research.md, etc.) that all route to the single
+  // unified `sdlc` skill with a phase argument. Phase bodies live in
+  // .sdlc/skills/sdlc/references/<phase>.md. We verify Claude has a dedicated
+  // command file for each phase, and that the Copilot sdlc.prompt.md (whose
+  // description lists the full phase pipeline) contains all 5 phase names.
   // ---------------------------------------------------------------------------
   it('workflow phase sequence matches across Claude and Copilot', () => {
     const claudeCommandsDir = path.join(proj.dir, '.claude', 'commands');

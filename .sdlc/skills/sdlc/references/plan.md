@@ -1,8 +1,3 @@
----
-name: sdlc-plan
-description: "SDLC plan phase — produces 03-plan.md with task breakdown. Each task specifies domain skill, dependencies, and acceptance criteria. Structure varies by workflow type: architectural layers (feature), fix + regression (bugfix), migration steps (refactor)."
----
-
 # SDLC Plan Phase
 
 ## Purpose
