@@ -230,10 +230,11 @@ Otherwise, look for an active workflow in sdlc-doc/workflows/ (most recent manif
 `,
     copilot: `Run the SDLC clarify phase for: $ARGUMENTS
 
-1. Read the \`sdlc-clarify\` skill from \`.sdlc/skills/sdlc-clarify/SKILL.md\`
-2. Follow its instructions to refine scope and constraints
-3. Produce \`00-clarify.md\` in the workflow folder
-4. Present findings for approval
+1. Read the SDLC orchestrator skill at \`.sdlc/skills/sdlc/SKILL.md\` for shared context (manifest, type detection, stop-gates)
+2. Read the phase-specific instructions at \`.sdlc/skills/sdlc/references/clarify.md\`
+3. Follow them to refine scope and constraints
+4. Produce \`00-clarify.md\` in the workflow folder
+5. Present findings for approval
 
 Use @sdlc-lead to orchestrate.
 `,
@@ -247,10 +248,11 @@ Otherwise, look for an active workflow in sdlc-doc/workflows/ (most recent manif
 `,
     copilot: `Run the SDLC research phase for: $ARGUMENTS
 
-1. Read the \`sdlc-research\` skill from \`.sdlc/skills/sdlc-research/SKILL.md\`
-2. Follow its instructions to analyze the codebase
-3. Produce \`01-research.md\` in the workflow folder
-4. Present findings for approval
+1. Read the SDLC orchestrator skill at \`.sdlc/skills/sdlc/SKILL.md\` for shared context (manifest, type detection, stop-gates)
+2. Read the phase-specific instructions at \`.sdlc/skills/sdlc/references/research.md\`
+3. Follow them to analyze the codebase
+4. Produce \`01-research.md\` in the workflow folder
+5. Present findings for approval
 
 Use @sdlc-lead to orchestrate.
 `,
@@ -264,10 +266,11 @@ Otherwise, look for an active workflow in sdlc-doc/workflows/ (most recent manif
 `,
     copilot: `Run the SDLC design phase for: $ARGUMENTS
 
-1. Read the \`sdlc-design\` skill from \`.sdlc/skills/sdlc-design/SKILL.md\`
-2. Follow its instructions to produce design artifacts
-3. Produce artifacts in \`02-design/\` in the workflow folder
-4. Present findings for approval
+1. Read the SDLC orchestrator skill at \`.sdlc/skills/sdlc/SKILL.md\` for shared context (manifest, type detection, stop-gates)
+2. Read the phase-specific instructions at \`.sdlc/skills/sdlc/references/design.md\`
+3. Follow them to produce design artifacts
+4. Produce artifacts in \`02-design/\` in the workflow folder
+5. Present findings for approval
 
 Use @sdlc-lead to orchestrate.
 `,
@@ -281,10 +284,11 @@ Otherwise, look for an active workflow in sdlc-doc/workflows/ (most recent manif
 `,
     copilot: `Run the SDLC plan phase for: $ARGUMENTS
 
-1. Read the \`sdlc-plan\` skill from \`.sdlc/skills/sdlc-plan/SKILL.md\`
-2. Follow its instructions to create implementation plan
-3. Produce \`03-plan.md\` in the workflow folder
-4. Present plan for approval
+1. Read the SDLC orchestrator skill at \`.sdlc/skills/sdlc/SKILL.md\` for shared context (manifest, type detection, stop-gates)
+2. Read the phase-specific instructions at \`.sdlc/skills/sdlc/references/plan.md\`
+3. Follow them to create the implementation plan
+4. Produce \`03-plan.md\` in the workflow folder
+5. Present plan for approval
 
 Use @sdlc-lead to orchestrate.
 `,
@@ -298,10 +302,11 @@ Otherwise, look for an active workflow in sdlc-doc/workflows/ (most recent manif
 `,
     copilot: `Run the SDLC implement phase for: $ARGUMENTS
 
-1. Read the \`sdlc-implement\` skill from \`.sdlc/skills/sdlc-implement/SKILL.md\`
-2. Follow its instructions to execute the implementation plan
-3. Produce \`04-implementation-log.md\` in the workflow folder
-4. Present results for approval
+1. Read the SDLC orchestrator skill at \`.sdlc/skills/sdlc/SKILL.md\` for shared context (manifest, type detection, stop-gates)
+2. Read the phase-specific instructions at \`.sdlc/skills/sdlc/references/implement.md\`
+3. Follow them to execute the implementation plan
+4. Produce \`04-implementation-log.md\` in the workflow folder
+5. Present results for approval
 
 Use @sdlc-lead to orchestrate.
 `,
@@ -526,12 +531,16 @@ ${meta.extra}
     write(path.join(dir, 'agents', `${name}.md`), content);
   }
 
-  // Skills — copy from .sdlc/skills/*/SKILL.md
+  // Skills — copy each .sdlc/skills/<name>/ as .claude/skills/<name>/.
+  // Preserves the standard Agent Skills layout: SKILL.md plus optional references/
+  // and assets/ subdirectories. This is the same on-disk structure Codex CLI and
+  // Cursor expect, so the source layout is platform-agnostic.
   for (const skill of skills) {
-    write(
-      path.join(dir, 'skills', `SKILL.${skill.name}.md`),
-      skill.content,
-    );
+    const srcDir = path.join(AGENTS_SRC, 'skills', skill.name);
+    const destDir = path.join(dir, 'skills', skill.name);
+    for (const rel of listFilesRecursive(srcDir, srcDir)) {
+      write(path.join(destDir, rel), readFile(path.join(srcDir, rel)));
+    }
   }
 
   return results;
