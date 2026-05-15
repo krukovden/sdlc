@@ -186,25 +186,32 @@ When a task exhausts retries (3 cycles), set task `status` to `failed`, record `
 
 The Lead agent updates `manifest.json` **before and after every agent dispatch** so the dashboard stays in sync.
 
-### 6. Delegate to first phase
+### 6. Run the first phase
 
 **CHECKPOINT:** Before proceeding, verify `manifest.json` exists on disk and contains valid JSON with the correct workflow type, slug, and phase structure. If it doesn't exist, you skipped step 5 — go back and create it NOW.
 
-Invoke the `sdlc-clarify` skill with the workflow type and manifest path.
+Load `references/clarify.md` and follow its instructions, passing the workflow type and manifest path as context.
 
-## Phase Delegation
+## Phase Execution
 
-Invoke the phase-specific skill for the current phase:
+This skill consolidates all five phases. Phase-specific instructions live in `references/`:
 
-| Phase | Skill to invoke |
-|-------|----------------|
-| Clarify | `sdlc-clarify` |
-| Research | `sdlc-research` |
-| Design | `sdlc-design` |
-| Plan | `sdlc-plan` |
-| Implement | `sdlc-implement` |
+| Phase | Reference file | Artifact |
+|-------|----------------|----------|
+| Clarify   | `references/clarify.md`   | `00-clarify.md` |
+| Research  | `references/research.md`  | `01-research.md` |
+| Design    | `references/design.md`    | `02-design/` |
+| Plan      | `references/plan.md`      | `03-plan.md` |
+| Implement | `references/implement.md` | `04-implementation-log.md` |
 
-Pass the workflow type and manifest path to each phase skill.
+**How to run a phase:**
+1. Read `references/<phase>.md` — load only the one you need (progressive disclosure keeps context lean)
+2. Follow its instructions to produce the phase artifact
+3. Update `manifest.json` (status, timestamps)
+4. Present the artifact at the stop-gate (skip if `--auto-approve`)
+5. On approval, transition to the next phase (see "Phase Transition" below)
+
+The references share the canonical SDLC vocabulary (workflow type, manifest schema, artifact paths) defined in this SKILL.md — they do not redefine these contracts.
 
 ## Phase Transition
 
@@ -212,7 +219,7 @@ After a phase is approved (by the user, or automatically if `--auto-approve`):
 1. Update manifest: set current phase status to `approved` with `completed_at` timestamp
 2. Advance `current_phase` to the next phase
 3. Set next phase status to `in_progress`
-4. Invoke the next phase skill
+4. Load `references/<next-phase>.md` from this skill and follow its instructions — do NOT invoke a separate phase skill (all phases live in this unified `sdlc` skill under `references/`)
 
 ## Resume Mode
 

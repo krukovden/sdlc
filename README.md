@@ -270,13 +270,15 @@ Pick up where you (or another tool) left off. The system scans `sdlc-doc/workflo
 |--------|------------|-------------------|-------|
 | **Setup** | `npx github:krukovden/sdlc` | `npx github:krukovden/sdlc` | `npx github:krukovden/sdlc` |
 | **Full pipeline** | `/sdlc feature "..."` | `/sdlc feature "..."` | `$sdlc feature "..."` |
-| **Clarify only** | `/sdlc:clarify "..."` | `/sdlc:clarify "..."` | `$sdlc-clarify "..."` |
-| **Research only** | `/sdlc:research` | `/sdlc:research` | `$sdlc-research` |
-| **Design only** | `/sdlc:design` | `/sdlc:design` | `$sdlc-design` |
-| **Plan only** | `/sdlc:plan` | `/sdlc:plan` | `$sdlc-plan` |
-| **Implement only** | `/sdlc:implement` | `/sdlc:implement` | `$sdlc-implement` |
+| **Clarify only** | `/sdlc:clarify "..."` | `/sdlc:clarify "..."` | `$sdlc clarify "..."` |
+| **Research only** | `/sdlc:research` | `/sdlc:research` | `$sdlc research` |
+| **Design only** | `/sdlc:design` | `/sdlc:design` | `$sdlc design` |
+| **Plan only** | `/sdlc:plan` | `/sdlc:plan` | `$sdlc plan` |
+| **Implement only** | `/sdlc:implement` | `/sdlc:implement` | `$sdlc implement` |
 | **Resume workflow** | `/sdlc:resume` | `/sdlc:resume` | `$sdlc resume` |
 | **Resume from phase** | `/sdlc:resume design` | `/sdlc:resume design` | `$sdlc resume design` |
+
+All three platforms route through the **single `sdlc` skill** with the phase as an argument. Phase-specific instructions live in `.sdlc/skills/sdlc/references/<phase>.md` (progressive disclosure: only the active phase is loaded into context).
 
 ### Headless / CI Usage
 
