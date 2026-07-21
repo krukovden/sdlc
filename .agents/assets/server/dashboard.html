@@ -119,13 +119,17 @@
   <span>⏳</span>No active workflow<br>
   <small>Run <code>/sdlc feature "description"</code> to start one</small>
 </div>
-<p class="note">Refreshes every 2 s · reads /api/state · agent pipeline: C=Coder › T=Tester › R=Reviewer › S=Security › L=Lead</p>
+<p class="note">Refreshes every 2 s · reads /api/state · agent pipeline: C=Coder › T=Tester › R=Reviewer › S=Security › D=Rubber Duck › L=Lead</p>
 
 <script>
-const ROLES = ['coder','tester','reviewer','security','lead'];
-const ROLE_LETTER = {coder:'C',tester:'T',reviewer:'R',security:'S',lead:'L'};
-const ROLE_COLOR  = {coder:'#1f6feb',tester:'#8957e5',reviewer:'#238636',security:'#b91c1c',lead:'#e3722a'};
-const ROLE_CLASS  = {coder:'r-c',tester:'r-t',reviewer:'r-r',security:'r-s',lead:'r-l'};
+// Pipeline order. rubber_duck sits between security and lead, matching the dispatch order
+// in references/implement.md. agentHtml() returns '' for a role the manifest omits, so a
+// workflow created before the duck existed — or one that disabled it — renders unchanged.
+const ROLES = ['coder','tester','reviewer','security','rubber_duck','lead'];
+const ROLE_LETTER = {coder:'C',tester:'T',reviewer:'R',security:'S',rubber_duck:'D',lead:'L'};
+const ROLE_COLOR  = {coder:'#1f6feb',tester:'#8957e5',reviewer:'#238636',security:'#b91c1c',rubber_duck:'#14b8a6',lead:'#e3722a'};
+const ROLE_CLASS  = {coder:'r-c',tester:'r-t',reviewer:'r-r',security:'r-s',rubber_duck:'r-d',lead:'r-l'};
+const ROLE_TITLE  = {coder:'Coder',tester:'Tester',reviewer:'Reviewer',security:'Security',rubber_duck:'Rubber Duck',lead:'Lead'};
 const PHASE_ORDER = ['clarify','research','design','plan','implement'];
 
 function agentHtml(role, agentData, isCurrent) {
@@ -135,20 +139,22 @@ function agentHtml(role, agentData, isCurrent) {
   const letter = ROLE_LETTER[role];
   const cls = ROLE_CLASS[role];
 
+  const title = ROLE_TITLE[role] || role;
+
   if (status === 'active' && isCurrent) {
-    return `<div class="dot-active" style="background:${color}" title="${role} — working now">
-      <span class="live"></span>${role.charAt(0).toUpperCase()+role.slice(1)}
+    return `<div class="dot-active" style="background:${color}" title="${title} — working now">
+      <span class="live"></span>${title}
     </div>`;
   }
   if (status === 'failed') {
-    return `<div class="dot-active fix" style="background:${color}" title="${role} — rejected, fix needed">
-      <span class="live"></span>${role.charAt(0).toUpperCase()+role.slice(1)} ✗
+    return `<div class="dot-active fix" style="background:${color}" title="${title} — rejected, fix needed">
+      <span class="live"></span>${title} ✗
     </div>`;
   }
   let stateClass = 's-pending';
   if (status === 'passed') stateClass = bounces > 0 ? 's-bumpy' : 's-approved';
   else if (status === 'skipped') stateClass = 's-pending';
-  return `<div class="dot ${cls} ${stateClass}" title="${role} — ${escHtml(String(status))}${bounces>0?' ('+bounces+' bounce'+(bounces>1?'s':'')+')':''}">
+  return `<div class="dot ${cls} ${stateClass}" title="${title} — ${escHtml(String(status))}${bounces>0?' ('+bounces+' bounce'+(bounces>1?'s':'')+')':''}">
     ${letter}
   </div>`;
 }
@@ -161,14 +167,14 @@ function cardHtml(task, cardClass) {
   const skills = task.skills || {};
   const skillText = [skills.primary, ...(skills.supplementary||[])].filter(Boolean).join(' · ');
 
-  const pipeHtml = ROLES.map((role, i) => {
-    const agentData = task.agents?.[role];
-    if (!agentData) return '';
-    const isCurrent = task.current_agent === role;
-    const dot = agentHtml(role, agentData, isCurrent);
-    const arrow = i < ROLES.length - 1 ? '<span class="pipe-arrow">›</span>' : '';
-    return dot + arrow;
-  }).filter(Boolean).join('');
+  // Render the roles this task actually carries, then join with arrows — deriving the
+  // separator from the index in ROLES leaves a trailing arrow whenever the final roles
+  // are absent (an optional Security, a disabled Rubber Duck, a manifest predating either).
+  const pipeHtml = ROLES
+    .filter(role => task.agents?.[role])
+    .map(role => agentHtml(role, task.agents[role], task.current_agent === role))
+    .filter(Boolean)
+    .join('<span class="pipe-arrow">›</span>');
 
   return `<div class="card ${cardClass}">
     <div class="card-id">#${escHtml(String(task.id))}</div>

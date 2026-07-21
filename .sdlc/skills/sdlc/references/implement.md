@@ -534,3 +534,14 @@ You can:
 - **After agent completes**: Update agent's status to `passed` or `failed`, clear `current_agent` (or set to next agent)
 - **After all agents pass**: Set task `status` to `done`, record `commit` hash
 - These updates keep `manifest.json` in sync with the dashboard and console progress table
+
+### Agent keys in the manifest
+
+The `agents` object uses these exact keys — the dashboard reads them verbatim, so a
+near-miss (`rubberDuck`, `rubber-duck`) renders no dot at all:
+
+`coder` · `tester` · `reviewer` · `security` · `rubber_duck` · `lead`
+
+Rubber Duck is updated like any other agent, and it carries its **own** retry budget of 3
+cycles, independent of Reviewer's and Security's. When it is disabled, set its status to
+`skipped` rather than omitting it, so the card shows the duck was considered and stood down.

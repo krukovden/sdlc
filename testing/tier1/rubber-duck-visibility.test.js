@@ -1,0 +1,210 @@
+'use strict';
+
+const { describe, it } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const { SDLC_ROOT } = require('../helpers/temp-project');
+
+function readSource(relPath) {
+  return fs.readFileSync(path.join(SDLC_ROOT, relPath), 'utf8');
+}
+
+const DASHBOARDS = ['.sdlc/assets/server/dashboard.html', '.agents/assets/server/dashboard.html'];
+const SKILL = '.sdlc/skills/sdlc/SKILL.md';
+const IMPLEMENT = '.sdlc/skills/sdlc/references/implement.md';
+
+// ---------------------------------------------------------------------------
+// Rubber Duck runs in the pipeline and can bounce a task, so it must be visible.
+// Before this, the agent ran, rejected work, and showed nothing on the kanban card —
+// a task would sit active with no rendered cause.
+// ---------------------------------------------------------------------------
+
+describe('rubber duck visibility', () => {
+  it('is in the manifest agents schema', () => {
+    assert.match(readSource(SKILL), /"rubber_duck":\s*\{\s*"status"/);
+  });
+
+  it('the manifest key is documented so the Lead writes it exactly', () => {
+    assert.match(readSource(IMPLEMENT), /`rubber_duck`/);
+  });
+
+  it('appears in the kanban legend', () => {
+    assert.match(readSource(SKILL), /D=Rubber Duck/);
+  });
+
+  for (const dashboard of DASHBOARDS) {
+    describe(dashboard, () => {
+      it('declares the role in every lookup table', () => {
+        const content = readSource(dashboard);
+        for (const table of ['ROLES', 'ROLE_LETTER', 'ROLE_COLOR', 'ROLE_CLASS', 'ROLE_TITLE']) {
+          const line = content.split('\n').find(l => l.includes(`const ${table}`));
+          assert.ok(line, `${table} not found`);
+          assert.match(line, /rubber_duck/, `${table} is missing rubber_duck`);
+        }
+      });
+
+      it('orders the duck between security and lead, matching dispatch order', () => {
+        const line = readSource(dashboard).split('\n').find(l => l.includes('const ROLES'));
+        const roles = [...line.matchAll(/'([a-z_]+)'/g)].map(m => m[1]);
+        assert.deepStrictEqual(roles, ['coder', 'tester', 'reviewer', 'security', 'rubber_duck', 'lead']);
+      });
+
+      it('renders a human-readable title, not the raw snake_case key', () => {
+        const content = readSource(dashboard);
+        assert.match(content, /rubber_duck:'Rubber Duck'/);
+        assert.ok(
+          !/role\.charAt\(0\)\.toUpperCase\(\)/.test(content),
+          'capitalising the key yields "Rubber_duck"',
+        );
+      });
+
+      it('gives the duck a colour distinct from every other role', () => {
+        const line = readSource(dashboard).split('\n').find(l => l.includes('const ROLE_COLOR'));
+        const colours = [...line.matchAll(/#[0-9a-f]{6}/gi)].map(m => m[0].toLowerCase());
+        assert.strictEqual(new Set(colours).size, colours.length, 'two roles share a colour');
+      });
+
+      it('joins the pipeline with separators instead of indexing into ROLES', () => {
+        // Deriving the arrow from the index leaves a trailing separator whenever the last
+        // roles are absent — an optional Security, a disabled duck, an older manifest.
+        const content = readSource(dashboard);
+        assert.match(content, /\.join\('<span class="pipe-arrow">/);
+        assert.ok(
+          !/i < ROLES\.length - 1/.test(content),
+          'index-derived arrows leave a trailing separator',
+        );
+      });
+
+      it('renders nothing for a role the manifest omits (backward compatible)', () => {
+        assert.match(readSource(dashboard), /if \(!agentData\) return '';/);
+      });
+    });
+  }
+
+  it('backs its cross-model claim with a dispatch-time selection rule', () => {
+    // The agent file asserts it "runs on a different model". Prose cannot make that true —
+    // without a selection rule the duck runs on the same model as everyone before it and
+    // its entire premise is silently void.
+    const duck = readSource('.sdlc/agents/sdlc-rubber-duck.md');
+    assert.match(duck, /different model/i);
+    assert.match(duck, /rubber_duck_model/);
+    assert.match(duck, /at call time/i);
+    assert.match(duck, /Say so in the verdict/i, 'a same-model run must be disclosed, not passed off');
+  });
+
+  it('both model pins are documented as optional config keys', () => {
+    const skill = readSource(SKILL);
+    assert.match(skill, /architect_model/);
+    assert.match(skill, /rubber_duck_model/);
+    assert.match(skill, /tier alias/i);
+  });
+
+  it('both dashboard copies are identical', () => {
+    const [a, b] = DASHBOARDS.map(readSource);
+    assert.strictEqual(a, b, 'the two dashboard copies have drifted');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Context economy + design quality
+// ---------------------------------------------------------------------------
+
+describe('research delegates the codebase walk', () => {
+  const RESEARCH = '.sdlc/skills/sdlc/references/research.md';
+
+  it('dispatches a sub-agent rather than reading files inline', () => {
+    const content = readSource(RESEARCH);
+    assert.match(content, /Explore/);
+    assert.match(content, /sub-agent/i);
+  });
+
+  it('explains that later phases share the window', () => {
+    assert.match(readSource(RESEARCH), /context window|window that Design/i);
+  });
+});
+
+describe('design phase', () => {
+  const DESIGN = '.sdlc/skills/sdlc/references/design.md';
+  const ARCHITECT = '.sdlc/skills/architect/SKILL.md';
+
+  it('treats artifacts as candidates, not a fixed quota', () => {
+    assert.match(readSource(DESIGN), /Candidates, Not a Quota/i);
+  });
+
+  it('requires a skipped artifact to record its reason', () => {
+    const content = readSource(DESIGN);
+    assert.match(content, /02-design\/README\.md/);
+    assert.match(content, /skipped —/);
+  });
+
+  it('surfaces both produced and skipped artifacts at the stop-gate', () => {
+    const gate = readSource(DESIGN).split('## Stop-Gate')[1];
+    assert.match(gate, /skipped/i, 'the gate must show what was deliberately left out');
+  });
+
+  it('invokes design-it-twice for hard-to-reverse interfaces', () => {
+    assert.match(readSource(DESIGN), /design-it-twice/i);
+    assert.match(readSource(ARCHITECT), /Design it twice/i);
+  });
+
+  it('design-it-twice runs alternatives in sub-agents', () => {
+    const section = readSource(ARCHITECT).split('### 2d.')[1].split('\n### ')[0];
+    assert.match(section, /sub-agents/i);
+    assert.match(section, /radically different/i);
+  });
+
+  it('design-it-twice detects the dispatch mode instead of assuming parallelism', () => {
+    // implement.md already ladders Agent Teams → Copilot Fleet → Agent tool. Without the
+    // same ladder here, a platform with no parallel dispatch has no defined behaviour and
+    // the model improvises — most likely inline, which costs the full 3x tokens and
+    // returns none of the isolation that justified spending them.
+    const section = readSource(ARCHITECT).split('### 2d.')[1].split('\n### ')[0];
+    for (const rung of ['Agent Teams', 'Copilot Fleet', 'Agent` tool']) {
+      assert.ok(section.includes(rung), `dispatch ladder is missing: ${rung}`);
+    }
+  });
+
+  it('separates the token win from the wall-clock win', () => {
+    // Sequential sub-agents keep the whole token saving; parallelism only buys speed.
+    // Conflating them makes "no parallel dispatch" read as "give up and inline".
+    const section = readSource(ARCHITECT).split('### 2d.')[1].split('\n### ')[0];
+    assert.match(section, /separate context windows/i);
+    assert.match(section, /sequential sub-agents/i);
+  });
+
+  it('detects the model at call time instead of naming one from memory', () => {
+    // A model named from training data ages badly: it may be retired, renamed, or
+    // superseded by one the model has never heard of. The live list is whatever the
+    // dispatch tool accepts right now.
+    const section = readSource(ARCHITECT).split('### 2d.')[1].split('\n### ')[0];
+    assert.match(section, /Detect, never recall/i);
+    assert.match(section, /at call time/i);
+    assert.match(section, /architect_model/);
+  });
+
+  it('pins tier aliases rather than versioned model ids', () => {
+    // `opus` follows the tier as it advances; `claude-opus-4-8` freezes on one release.
+    const section = readSource(ARCHITECT).split('### 2d.')[1].split('\n### ')[0];
+    assert.match(section, /tier alias/i);
+    assert.match(section, /never a versioned id/i);
+    assert.ok(
+      !/claude-[a-z]+-\d/.test(section),
+      'a concrete versioned model id in the skill is exactly what goes stale',
+    );
+  });
+
+  it('caps design-it-twice so it cannot eat the phase', () => {
+    const section = readSource(ARCHITECT).split('### 2d.')[1].split('\n### ')[0];
+    assert.match(section, /Budget/i);
+    assert.match(section, /one\*\* round per interface/i);
+  });
+
+  it('ADRs are gated by the three-part test, not by "significant"', () => {
+    const content = readSource(ARCHITECT);
+    assert.match(content, /Hard to reverse/i);
+    assert.match(content, /Surprising without context/i);
+    assert.match(content, /real trade-off/i);
+  });
+});

@@ -24,6 +24,21 @@ Before executing any `/sdlc` command, ensure the manifest tracking server is run
   └─────────────────────────────────────────────────────────────┘
 ```
 
+### Optional config keys
+
+`\.sdlc/config.json` may also carry model pins. Both are optional; when absent, the
+dispatching agent detects a model from the options its dispatch tool offers at call time.
+
+| Key | Used by | Meaning |
+|-----|---------|---------|
+| `architect_model` | design phase | Model for the design-it-twice alternative sub-agents |
+| `rubber_duck_model` | implement phase | Model for the Rubber Duck, which must differ from the primary agents' |
+
+Pin a **tier alias** (`opus`, `fable`, …), not a versioned id — an alias follows the tier as
+it advances, a version string freezes on one release. Pin these when you want a fixed
+choice or a spend cap; leave them unset to let each dispatch pick the strongest tier
+currently available.
+
 If `\.sdlc/config.json` does not exist, run `npx sdlc init` first. If `/api/state` returns `active_workflow: null`, print: "No active workflow — run `/sdlc` to start one."
 
 If the server fails to start (port taken, Python not found), print a warning and continue without the dashboard — workflow execution is not blocked.
@@ -165,11 +180,12 @@ The `tasks` array is populated at the Plan phase. Each entry:
   "current_agent": null,
   "skills": { "primary": "{domain-skill}", "supplementary": [] },
   "agents": {
-    "coder":      { "status": "pending", "bounces": 0 },
-    "tester":     { "status": "pending", "bounces": 0 },
-    "reviewer":   { "status": "pending", "bounces": 0 },
-    "security":   { "status": "pending", "bounces": 0 },
-    "lead":       { "status": "pending", "bounces": 0 }
+    "coder":       { "status": "pending", "bounces": 0 },
+    "tester":      { "status": "pending", "bounces": 0 },
+    "reviewer":    { "status": "pending", "bounces": 0 },
+    "security":    { "status": "pending", "bounces": 0 },
+    "rubber_duck": { "status": "pending", "bounces": 0 },
+    "lead":        { "status": "pending", "bounces": 0 }
   },
   "retry_count": 0,
   "commit": null,
@@ -284,12 +300,18 @@ When `dashboard` is `true` in the manifest, generate a self-contained `dashboard
 │ Agent: {current_agent}   │
 │ Skills: {primary}        │
 │   + {supplementary}      │
-│ ┌─C──T──R──S──L─┐       │
-│ │ ✅  ⚙  ○  ○  ○ │       │
-│ └────────────────┘       │
+│ ┌─C──T──R──S──D──L─┐     │
+│ │ ✅  ⚙  ○  ○  ○  ○ │     │
+│ └───────────────────┘     │
 └──────────────────────────┘
-C=Coder T=Tester R=Reviewer S=Security L=Lead(compliance)
+C=Coder T=Tester R=Reviewer S=Security D=Rubber Duck L=Lead(compliance)
 ```
+
+Every agent that can bounce a task must appear here and in the manifest's `agents` object,
+in dispatch order. An agent that runs and rejects but has no dot leaves the card showing an
+active task with no visible cause — which is what happened to Rubber Duck. A role the
+manifest omits (Security when the Lead skips it, Rubber Duck when disabled) simply renders
+no dot, so an older manifest displays exactly as it did before.
 
 ### Local server
 Start with: `python -m http.server 8111 --directory {workflow-folder}` (run in background).
