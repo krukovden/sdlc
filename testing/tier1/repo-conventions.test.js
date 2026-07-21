@@ -94,7 +94,11 @@ describe('attribution', () => {
   it('records the vendored skill and reproduces its licence', () => {
     const attribution = read('ATTRIBUTION.md');
     assert.match(attribution, /mattpocock\/skills/);
-    assert.match(attribution, /\.sdlc\/skills\/grilling\//);
+    // A character class escapes the dot here instead of a backslash. The scan in
+    // server.test.js is a plain substring search, and a backslash-escaped dot in a
+    // regex reads identically to the string-literal bug it hunts for — keeping that
+    // sequence absent everywhere, regexes included, is the point.
+    assert.match(attribution, /[.]sdlc\/skills\/grilling\//);
     assert.match(attribution, /MIT License/, 'the licence text must travel with the derived work');
   });
 });
