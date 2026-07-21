@@ -40,18 +40,22 @@ function copyDirSync(src, dest) {
  * @returns {Promise<{ dir: string, workflowsDir: string, cleanup: () => void }>}
  */
 async function create({ tool } = {}) {
-  const timestamp = Date.now();
   const label = tool || 'base';
-  const dir = path.join(RUNS_DIR, `tier1-${timestamp}-${label}`);
 
-  fs.mkdirSync(dir, { recursive: true });
+  // `node --test testing/tier1/*.test.js` runs the files concurrently, so two of them can
+  // reach this line in the same millisecond with the same label. A name built from
+  // Date.now() alone then hands both the SAME directory, and the first cleanup() deletes
+  // the other's project mid-test — surfacing as an unrelated ENOENT somewhere downstream.
+  // mkdtempSync appends random characters atomically, so every caller gets its own.
+  fs.mkdirSync(RUNS_DIR, { recursive: true });
+  const dir = fs.mkdtempSync(path.join(RUNS_DIR, `tier1-${label}-`));
 
   // Copy .sdlc/, setup.js, bin/, package.json from SDLC_ROOT
   // These are the package files that setup.js reads during init
   copyDirSync(path.join(SDLC_ROOT, '.sdlc'), path.join(dir, '.sdlc'));
   fs.copyFileSync(path.join(SDLC_ROOT, 'setup.js'), path.join(dir, 'setup.js'));
   copyDirSync(path.join(SDLC_ROOT, 'bin'), path.join(dir, 'bin'));
-  // server files live under .agents/assets/server/ — already copied by the .agents copyDirSync above
+  // server files live under .sdlc/assets/server/ — already copied by the .sdlc copyDirSync above
   fs.copyFileSync(path.join(SDLC_ROOT, 'package.json'), path.join(dir, 'package.json'));
 
   // 5. If tool is specified: run `node bin/sdlc.js init <tool>` in the temp dir
