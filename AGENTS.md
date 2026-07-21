@@ -10,7 +10,8 @@ This is the **source repo** for the npm package `@krukovden/sdlc` — an AI-powe
 |---|---|
 | `.sdlc/AGENTS.md` | Template **shipped to consumers** — not the active instruction file for this repo |
 | `.sdlc/agents/` | Role definitions (`sdlc-lead`, `sdlc-coder`, `sdlc-tester`, `sdlc-reviewer`, `sdlc-security`, `sdlc-rubber-duck`) |
-| `.sdlc/skills/` | Domain skills (architect, frontend-angular, backend-csharp, devops-azure, …) |
+| `.sdlc/skills/` | Domain skills (architect, grilling, frontend-angular, backend-csharp, devops-azure, …) — auto-discovered, no registry |
+| `ATTRIBUTION.md` | Third-party work this package adapts, and under which licence |
 | `.sdlc/guidelines/` | `conventions.md`, `principles.md`, `error-handling.md`, `testing.md` |
 | `.sdlc/workflows/` | `feature.md`, `bugfix.md`, `refactor.md`, `spike.md` phase definitions |
 | `setup.js` | Per-platform generator (functions: `generateClaude`, `generateCopilot`, `generateCodex`) |
@@ -45,6 +46,27 @@ This copies `AGENTS.md` → `.github/copilot-instructions.md` cross-platform via
 3. If user-invocable, add to `SLASH_COMMANDS` (per-platform: `claude` / `copilot` / `codex` strings)
 4. Add a contract test in `testing/tier1/`
 5. Run `npm test`
+
+## Adding a new skill
+
+Skills are **auto-discovered** — `discoverSkills()` walks `.sdlc/skills/` (`setup.js`), so
+unlike a role there is no registry entry and no `setup.js` edit. A folder containing a
+`SKILL.md` is a skill; one without is ignored.
+
+1. Add `.sdlc/skills/<name>/SKILL.md`. Frontmatter needs `name` (matching the folder) and
+   `description`.
+2. Shape the description as **`Short label — when to reach for it`**. `setup.js` splits on
+   the first ` — ` and uses the left side as the skill's label in the generated `CLAUDE.md`
+   table; the right side is what tells the agent when to fire it. A description with no
+   ` — ` falls back to the folder name as its label.
+3. Optional subfolders travel with the skill: `references/` for material loaded on demand,
+   `scripts/` for deterministic helpers.
+4. Adapted from someone else's work? Record what and from where in `ATTRIBUTION.md`.
+5. Add a contract test in `testing/tier1/`.
+6. Run `npm test`.
+
+Skills whose name starts with `sdlc` are filtered out of the generated table — that is the
+orchestrator itself, not domain knowledge.
 
 ## Tests
 

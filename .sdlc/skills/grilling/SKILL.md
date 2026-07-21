@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: Relentless interview that walks a decision tree one question at a time until there is shared understanding. Use when a plan, scope, or design decision is still fuzzy — the Clarify phase runs on this, and any phase can invoke it when a decision needs pinning down.
+description: Relentless interview — walks a decision tree one question at a time until there is shared understanding. Use when a plan, scope, or design decision is still fuzzy; the Clarify phase runs on this, and any phase can invoke it when a decision needs pinning down.
 ---
 
 # Skill: grilling
