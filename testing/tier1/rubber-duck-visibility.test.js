@@ -4,6 +4,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
 const { SDLC_ROOT } = require('../helpers/temp-project');
 
@@ -11,7 +12,11 @@ function readSource(relPath) {
   return fs.readFileSync(path.join(SDLC_ROOT, relPath), 'utf8');
 }
 
-const DASHBOARDS = ['.sdlc/assets/server/dashboard.html', '.agents/assets/server/dashboard.html'];
+// One dashboard, one source of truth. `.agents/assets/` used to hold a second copy —
+// a stale snapshot left behind by the `.agents/` → `.sdlc/` rename that nothing read
+// (setup.js and the test harness both source `.sdlc/`) and that silently drifted out of
+// date. It has been deleted; keeping a duplicate in sync was work with no payer.
+const DASHBOARDS = ['.sdlc/assets/server/dashboard.html'];
 const SKILL = '.sdlc/skills/sdlc/SKILL.md';
 const IMPLEMENT = '.sdlc/skills/sdlc/references/implement.md';
 
@@ -101,9 +106,14 @@ describe('rubber duck visibility', () => {
     assert.match(skill, /tier alias/i);
   });
 
-  it('both dashboard copies are identical', () => {
-    const [a, b] = DASHBOARDS.map(readSource);
-    assert.strictEqual(a, b, 'the two dashboard copies have drifted');
+  it('the dashboard has exactly one copy in the repo', () => {
+    const copies = execFileSync('git', ['ls-files', '*dashboard.html'], {
+      cwd: SDLC_ROOT,
+      encoding: 'utf8',
+    })
+      .split('\n')
+      .filter(Boolean);
+    assert.deepStrictEqual(copies, ['.sdlc/assets/server/dashboard.html'], `found: ${copies}`);
   });
 });
 
@@ -123,7 +133,9 @@ describe('research delegates the codebase walk', () => {
   it('explains that later phases share the window', () => {
     assert.match(readSource(RESEARCH), /context window|window that Design/i);
   });
+
 });
+
 
 describe('design phase', () => {
   const DESIGN = '.sdlc/skills/sdlc/references/design.md';
