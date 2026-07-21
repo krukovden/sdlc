@@ -9,7 +9,7 @@ description: "SDLC workflow orchestrator — routes /sdlc commands to the correc
 
 Before executing any `/sdlc` command, ensure the manifest tracking server is running:
 
-1. Read `\.sdlc/config.json` in the project root — get `package_dir`
+1. Read `.sdlc/config.json` in the project root — get `package_dir`
 2. Run `python <package_dir>/.sdlc/assets/server/start.py` from the project root
    - If already running: prints the URL and exits immediately (idempotent)
    - If not running: starts in background, prints URL
@@ -26,7 +26,7 @@ Before executing any `/sdlc` command, ensure the manifest tracking server is run
 
 ### Optional config keys
 
-`\.sdlc/config.json` may also carry model pins. Both are optional; when absent, the
+`.sdlc/config.json` may also carry model pins. Both are optional; when absent, the
 dispatching agent detects a model from the options its dispatch tool offers at call time.
 
 | Key | Used by | Meaning |
@@ -39,7 +39,7 @@ it advances, a version string freezes on one release. Pin these when you want a 
 choice or a spend cap; leave them unset to let each dispatch pick the strongest tier
 currently available.
 
-If `\.sdlc/config.json` does not exist, run `npx sdlc init` first. If `/api/state` returns `active_workflow: null`, print: "No active workflow — run `/sdlc` to start one."
+If `.sdlc/config.json` does not exist, run `npx sdlc init` first. If `/api/state` returns `active_workflow: null`, print: "No active workflow — run `/sdlc` to start one."
 
 If the server fails to start (port taken, Python not found), print a warning and continue without the dashboard — workflow execution is not blocked.
 

@@ -225,7 +225,7 @@
 <div class="server-flow">
   <div class="server-node launcher">
     <div class="node-title" style="color:var(--cyan);">start.py</div>
-    <div class="node-desc">PID-aware launcher<br>reads \.sdlc/server.json<br>spawns if not running<br>idempotent</div>
+    <div class="node-desc">PID-aware launcher<br>reads .sdlc/server.json<br>spawns if not running<br>idempotent</div>
   </div>
   <div class="arrow">→</div>
   <div class="server-node http">
@@ -248,8 +248,8 @@
   <div class="card">
     <div class="card-header" style="color:var(--cyan);">Discovery files</div>
     <ul>
-      <li><strong>\.sdlc/server.json</strong> — PID, port, URL, start time (project root)</li>
-      <li><strong>\.sdlc/config.json</strong> — package_dir path so skill preamble can locate start.py</li>
+      <li><strong>.sdlc/server.json</strong> — PID, port, URL, start time (project root)</li>
+      <li><strong>.sdlc/config.json</strong> — package_dir path so skill preamble can locate start.py</li>
     </ul>
   </div>
   <div class="card">
@@ -550,9 +550,9 @@ sdlc-doc/workflows/feature/2026-04-06-notifications/
   <tr><td><code>npx sdlc init [platform]</code></td><td>Generate platform configs from .sdlc/; write sdlc-manifest.json</td><td class="no">No</td></tr>
   <tr><td><code>npx sdlc -u [platform]</code></td><td>Regenerate platform configs; merge sdlc-manifest.json timestamps</td><td class="no">No</td></tr>
   <tr><td><code>npx sdlc uninstall</code></td><td>Remove generated platform files (.claude/, .github/, .codex/); update sdlc-manifest.json</td><td class="no">No</td></tr>
-  <tr><td><code>npx sdlc server start</code></td><td>Start dashboard server (idempotent); write \.sdlc/server.json</td><td class="sym">Reads</td></tr>
-  <tr><td><code>npx sdlc server stop</code></td><td>Send POST /stop to running server; remove \.sdlc/server.json</td><td class="no">No</td></tr>
-  <tr><td><code>npx sdlc server url</code></td><td>Print URL from \.sdlc/server.json; exit 1 if not running</td><td class="no">No</td></tr>
+  <tr><td><code>npx sdlc server start</code></td><td>Start dashboard server (idempotent); write .sdlc/server.json</td><td class="sym">Reads</td></tr>
+  <tr><td><code>npx sdlc server stop</code></td><td>Send POST /stop to running server; remove .sdlc/server.json</td><td class="no">No</td></tr>
+  <tr><td><code>npx sdlc server url</code></td><td>Print URL from .sdlc/server.json; exit 1 if not running</td><td class="no">No</td></tr>
 </table>
 
 <!-- ==================== PLATFORM COMPARISON ==================== -->

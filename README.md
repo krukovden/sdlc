@@ -161,7 +161,7 @@ Run `npx github:krukovden/sdlc` once per project — it generates the right conf
 ├── workflows/            ← phase definitions per workflow type
 └── assets/
     └── server/           ← dashboard server (Python stdlib, no pip)
-        ├── start.py      ← idempotent launcher; writes \.sdlc/server.json
+        ├── start.py      ← idempotent launcher; writes .sdlc/server.json
         ├── dashboard.py  ← HTTP server + manifest watcher
         └── dashboard.html← self-contained Kanban UI
 

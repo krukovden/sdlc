@@ -22,8 +22,8 @@ def is_pid_alive(pid):
 
 def main():
     cwd = Path.cwd()
-    server_json = cwd / '\.sdlc/server.json'
-    log_file = cwd / '\.sdlc/server.log'
+    server_json = cwd / '.sdlc/server.json'
+    log_file = cwd / '.sdlc/server.log'
 
     # Already running?
     if server_json.exists():

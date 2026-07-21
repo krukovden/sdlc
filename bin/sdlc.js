@@ -46,7 +46,7 @@ function showHelp() {
 }
 
 function serverJson() {
-  const p = path.join(process.cwd(), '\.sdlc/server.json');
+  const p = path.join(process.cwd(), '.sdlc/server.json');
   if (!fs.existsSync(p)) return null;
   try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; }
 }
@@ -101,13 +101,13 @@ function handleServer(sub) {
     const req = http.request(
       { hostname: 'localhost', port: data.port, path: '/stop', method: 'POST' },
       () => {
-        try { fs.unlinkSync(path.join(process.cwd(), '\.sdlc/server.json')); } catch {}
+        try { fs.unlinkSync(path.join(process.cwd(), '.sdlc/server.json')); } catch {}
         console.log('  Server stopped.');
         process.exit(0);
       },
     );
     req.on('error', () => {
-      try { fs.unlinkSync(path.join(process.cwd(), '\.sdlc/server.json')); } catch {}
+      try { fs.unlinkSync(path.join(process.cwd(), '.sdlc/server.json')); } catch {}
       console.log('  Server stopped (was not responding).');
       process.exit(0);
     });

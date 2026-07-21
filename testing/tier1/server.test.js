@@ -143,9 +143,9 @@ describe('/api/state — with a manifest', () => {
   });
 });
 
-// ─── setup.js init writes \.sdlc/config.json ─────────────────────────────────
+// ─── setup.js init writes .sdlc/config.json ─────────────────────────────────
 
-describe('setup.js init writes \.sdlc/config.json', () => {
+describe('setup.js init writes .sdlc/config.json', () => {
   let proj;
 
   before(async () => {
@@ -154,9 +154,9 @@ describe('setup.js init writes \.sdlc/config.json', () => {
 
   after(() => proj.cleanup());
 
-  it('creates \.sdlc/config.json with package_dir after init', () => {
-    const configPath = path.join(proj.dir, '\.sdlc/config.json');
-    assert.ok(fs.existsSync(configPath), '\.sdlc/config.json should exist after init');
+  it('creates .sdlc/config.json with package_dir after init', () => {
+    const configPath = path.join(proj.dir, '.sdlc/config.json');
+    assert.ok(fs.existsSync(configPath), '.sdlc/config.json should exist after init');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     assert.ok(typeof config.package_dir === 'string', 'package_dir must be a string');
     assert.ok(config.package_dir.length > 0, 'package_dir must not be empty');
@@ -165,13 +165,13 @@ describe('setup.js init writes \.sdlc/config.json', () => {
 
 // ─── sdlc server url subcommand ──────────────────────────────────────────────
 
-describe('sdlc server url — reads \.sdlc/server.json', () => {
+describe('sdlc server url — reads .sdlc/server.json', () => {
   let proj;
 
   before(async () => {
     proj = await create({ tool: 'claude' });
     fs.writeFileSync(
-      path.join(proj.dir, '\.sdlc/server.json'),
+      path.join(proj.dir, '.sdlc/server.json'),
       JSON.stringify({ pid: 99999, port: 7865, url: 'http://localhost:7865', started: new Date().toISOString() }),
     );
   });
@@ -193,7 +193,7 @@ describe('sdlc server url — reads \.sdlc/server.json', () => {
   });
 });
 
-describe('sdlc server url — no \.sdlc/server.json exits with 1', () => {
+describe('sdlc server url — no .sdlc/server.json exits with 1', () => {
   let proj;
   let exitCode;
   let output;
@@ -221,5 +221,54 @@ describe('sdlc server url — no \.sdlc/server.json exits with 1', () => {
       output && (output.includes('not running') || output.includes('No server') || output.includes('server')),
       `Expected server-related message in: ${output}`,
     );
+  });
+});
+
+// ─── server state path: `.sdlc/`, never `\.sdlc/` ─────────────────────────────
+//
+// The `.agents/` → `.sdlc/` rename escaped the leading dot, leaving `'\.sdlc/...'`
+// literals across the repo. The two languages disagree about what that means:
+// JavaScript drops an unknown escape (`.sdlc/...` — correct by accident), Python
+// keeps it (`\.sdlc/...` — a directory literally named `\.sdlc`). So start.py wrote
+// its state file to one path while bin/sdlc.js read another: the "already running?"
+// check looked in the wrong place, and a junk `\.sdlc` directory appeared in the
+// user's project. Python has also deprecated the sequence outright.
+
+describe('server state paths', () => {
+  const sourceFiles = execFileSync('git', ['ls-files'], { cwd: SDLC_ROOT, encoding: 'utf8' })
+    .split('\n')
+    .filter(Boolean);
+
+  it('no tracked file carries the stray escape', () => {
+    // Built from a char code rather than written as a literal: this file explains the
+    // bug and would otherwise match itself, which is also why it excludes its own path.
+    const SELF = 'testing/tier1/server.test.js';
+    const needle = `${String.fromCharCode(92)}.sdlc`;
+    const offenders = sourceFiles.filter((rel) => {
+      if (rel === SELF) return false;
+      const full = path.join(SDLC_ROOT, rel);
+      if (!fs.existsSync(full) || fs.statSync(full).isDirectory()) return false;
+      return fs.readFileSync(full, 'utf8').includes(needle);
+    });
+    assert.deepStrictEqual(offenders, [], `stray escape in: ${offenders.join(', ')}`);
+  });
+
+  it('start.py compiles without an invalid-escape warning', () => {
+    // -W error turns SyntaxWarning into a hard failure, which is what future
+    // Python versions will do on their own.
+    execFileSync(
+      pythonCmd,
+      ['-W', 'error::SyntaxWarning', '-c',
+       'import sys; compile(open(sys.argv[1]).read(), sys.argv[1], "exec")',
+       path.join(SDLC_ROOT, '.sdlc/assets/server/start.py')],
+      { stdio: 'pipe' },
+    );
+  });
+
+  it('start.py and bin/sdlc.js agree on the state file path', () => {
+    const py = fs.readFileSync(path.join(SDLC_ROOT, '.sdlc/assets/server/start.py'), 'utf8');
+    const js = fs.readFileSync(path.join(SDLC_ROOT, 'bin/sdlc.js'), 'utf8');
+    assert.match(py, /'\.sdlc\/server\.json'/, 'start.py writes the wrong path');
+    assert.match(js, /'\.sdlc\/server\.json'/, 'bin/sdlc.js reads the wrong path');
   });
 });
