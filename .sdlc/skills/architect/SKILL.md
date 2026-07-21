@@ -113,6 +113,11 @@ Detect what is available, in this order — the same ladder the implement phase 
    **two** alternatives. Record in `architecture-decisions.md` that design-it-twice ran
    degraded and why, so the thinness of the comparison is attributable later.
 
+If you are **already running inside a sub-agent** and the harness caps nesting, rung 5 is
+where you land — take it and say so, rather than reporting alternatives you did not
+actually generate separately. Two genuinely different designs beat four that one pass
+produced under different headings.
+
 Working the alternatives inline while a sub-agent mechanism exists is the failure to avoid:
 it costs the full 3× tokens and returns none of the isolation that justified spending them.
 

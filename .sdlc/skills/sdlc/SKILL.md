@@ -212,20 +212,28 @@ Load `references/clarify.md` and follow its instructions, passing the workflow t
 
 This skill consolidates all five phases. Phase-specific instructions live in `references/`:
 
-| Phase | Reference file | Artifact |
-|-------|----------------|----------|
-| Clarify   | `references/clarify.md`   | `00-clarify.md` |
-| Research  | `references/research.md`  | `01-research.md` |
-| Design    | `references/design.md`    | `02-design/` |
-| Plan      | `references/plan.md`      | `03-plan.md` |
-| Implement | `references/implement.md` | `04-implementation-log.md` |
+| Phase | Reference file | Artifact | Runs in |
+|-------|----------------|----------|---------|
+| Clarify   | `references/clarify.md`   | `00-clarify.md` | this window — it is a conversation |
+| Research  | `references/research.md`  | `01-research.md` | a sub-agent |
+| Design    | `references/design.md`    | `02-design/` | a sub-agent to produce; stop-gate here |
+| Plan      | `references/plan.md`      | `03-plan.md` | a sub-agent |
+| Implement | `references/implement.md` | `04-implementation-log.md` | per-task agent pipeline |
+
+Delegation rules and the dispatch contract: [references/dispatch.md](references/dispatch.md).
 
 **How to run a phase:**
-1. Read `references/<phase>.md` — load only the one you need (progressive disclosure keeps context lean)
-2. Follow its instructions to produce the phase artifact
-3. Update `manifest.json` (status, timestamps)
-4. Present the artifact at the stop-gate (skip if `--auto-approve`)
-5. On approval, transition to the next phase (see "Phase Transition" below)
+1. Set the phase `in_progress` in `manifest.json`
+2. **Decide whether to delegate** — see [dispatch.md](references/dispatch.md). Research and Plan run entirely in a sub-agent; Design delegates production only; Clarify never delegates, because it is a conversation with the user and a sub-agent cannot have one
+3. **Delegated**: dispatch with the workflow folder path and the phase reference file, and receive a stop-gate summary back. **Inline**: read `references/<phase>.md` and follow it here
+4. Update `manifest.json` — the orchestrator is its only writer, delegated or not
+5. Present the summary at the stop-gate (skip if `--auto-approve`)
+6. On approval, transition to the next phase (see "Phase Transition" below)
+
+Delegation is what keeps the later phases from reasoning on the residue of the earlier
+ones: the artifact on disk is the handoff, and only a paragraph returns to this window.
+Pass the sub-agent **paths, never file contents** — reading an artifact here in order to
+hand it over spends exactly the context the delegation was meant to save.
 
 The references share the canonical SDLC vocabulary (workflow type, manifest schema, artifact paths) defined in this SKILL.md — they do not redefine these contracts.
 

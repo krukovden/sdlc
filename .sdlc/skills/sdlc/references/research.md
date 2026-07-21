@@ -83,13 +83,19 @@ Use web search when local codebase analysis is not enough. Do NOT skip this — 
 
 ### Why delegate
 
-Phases run in sequence and share one context window until Implement. Everything this phase
-reads is still resident when the Architect designs and the Planner splits tasks. Pushing
-the file-by-file reading into a sub-agent is what keeps the later phases reasoning on a
-clean window instead of on the residue of this one.
+Everything this phase reads would otherwise still be resident when the Architect designs
+and the Planner splits tasks. Pushing the file-by-file reading into a sub-agent is what
+keeps the later phases reasoning on a clean window instead of on the residue of this one.
 
 Dispatch several Explore sub-agents in parallel when the scope has independent areas — one
 per subsystem, per stack, or per question — and merge what they return.
+
+**If this phase is itself running in a sub-agent** (the default — see
+[dispatch.md](dispatch.md)), you already have a clean window that nothing downstream
+inherits, so read the files directly. Dispatching from here would be a second level of
+nesting, which many harnesses cap or refuse, and it buys nothing: the context you would be
+protecting is discarded the moment this phase returns its summary. Delegate from inside the
+phase only when the phase is running inline in the orchestrator's window.
 
 ## Output Artifact
 

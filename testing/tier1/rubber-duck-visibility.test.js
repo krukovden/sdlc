@@ -134,8 +134,56 @@ describe('research delegates the codebase walk', () => {
     assert.match(readSource(RESEARCH), /context window|window that Design/i);
   });
 
+  it('does not nest a dispatch when the phase is already a sub-agent', () => {
+    // Two levels of nesting are capped or refused by many harnesses, and buy nothing:
+    // the context being protected is discarded when the phase returns its summary.
+    assert.match(readSource(RESEARCH), /already running in a sub-agent|itself running in a sub-agent/i);
+    assert.match(readSource(RESEARCH), /nesting/i);
+  });
 });
 
+describe('phase delegation', () => {
+  const DISPATCH = '.sdlc/skills/sdlc/references/dispatch.md';
+
+  it('the contract file exists', () => {
+    assert.ok(fs.existsSync(path.join(SDLC_ROOT, DISPATCH)), `${DISPATCH} not found`);
+  });
+
+  it('clarify is excluded, because grilling needs a user to answer', () => {
+    const content = readSource(DISPATCH);
+    const row = content.split('\n').find((l) => /\|\s*\*\*Clarify\*\*/.test(l));
+    assert.ok(row, 'Clarify row missing from the delegation table');
+    assert.match(row, /\*\*No\*\*/, 'Clarify must not be delegatable');
+    assert.match(row, /invent the answers/i, 'the reason must name the failure mode');
+  });
+
+  it('stop-gates stay with the orchestrator', () => {
+    assert.match(readSource(DISPATCH), /Stop-gates never delegate/i);
+  });
+
+  it('the manifest has exactly one writer', () => {
+    assert.match(readSource(DISPATCH), /orchestrator, always/i);
+    assert.match(readSource(DISPATCH), /two writers/i);
+  });
+
+  it('sub-agents receive paths, not file contents', () => {
+    // Reading an artifact into the orchestrator's window to hand it over spends
+    // precisely the context the delegation exists to save.
+    const content = readSource(DISPATCH);
+    assert.match(content, /paths, not contents/i);
+    assert.match(readSource(SKILL), /paths, never file contents/i);
+  });
+
+  it('a missing artifact is not reconstructed from the summary', () => {
+    assert.match(readSource(DISPATCH), /do not synthesize the artifact/i);
+  });
+
+  it('SKILL.md routes phase execution through the contract', () => {
+    const skill = readSource(SKILL);
+    assert.match(skill, /references\/dispatch\.md/);
+    assert.match(skill, /Runs in/, 'the phase table must say where each phase runs');
+  });
+});
 
 describe('design phase', () => {
   const DESIGN = '.sdlc/skills/sdlc/references/design.md';
