@@ -51,6 +51,21 @@ the context the delegation was meant to save.
 the decisions that shaped it, anything unresolved, and the paths it wrote. Not the artifact
 contents; those are on disk, and the user reads them there.
 
+**End every dispatch prompt with the return instruction — do not leave it to whoever
+writes the prompt.** Sub-agents routinely finish the work, write the artifact, and then go
+idle without sending anything back; the orchestrator receives only an `idle_notification`
+and cannot tell *success with no report* from *silent failure*. Close the prompt with this
+verbatim:
+
+> **IMPORTANT: When you are done you MUST send your stop-gate summary back as your final
+> message. Do not go idle without it.** The summary is the only thing that returns to the
+> orchestrator; the artifact stays on disk. A phase whose summary never arrives cannot be
+> presented at the gate.
+
+To make a silent agent recoverable in one read, have the artifact open with a
+`## Stop-gate summary` section as its **first** heading, so the summary survives even when
+the message does not.
+
 **Who writes the manifest — the orchestrator, always.** It sets the phase `in_progress`
 before dispatching and `approved` with `completed_at` after the user approves. A sub-agent
 that also writes the manifest gives the file two writers, and the dashboard reads whichever
@@ -58,7 +73,31 @@ landed last.
 
 ## Failure
 
-If the sub-agent returns without having written its artifact, the phase did not happen —
-do not synthesize the artifact from the summary. Report what came back, and offer to re-run
-the phase or continue inline. A phase artifact reconstructed from a summary is a phase that
-looks complete to every downstream agent while missing everything the summary compressed.
+Two different silences, two different responses — do not conflate them:
+
+**Artifact written, no summary returned.** This is the common case, not the rare one. The
+agent did the work and went idle. The phase *did* happen; only the report is missing. Do
+**not** re-derive the verdict by reading the whole artifact and re-running the phase's
+verification — that spends exactly the context the delegation saved. Read the artifact's own
+`## Stop-gate summary` section (its first heading — see above) and present *that* at the
+gate, noting the summary was recovered from disk rather than returned. If the artifact has
+no summary section, read only enough of it to fill the gate, and flag that the agent
+returned silent.
+
+**No artifact written.** The phase did not happen — do not synthesize the artifact from
+whatever came back. Report it, and offer to re-run the phase or continue inline. A phase
+artifact reconstructed from a summary is a phase that looks complete to every downstream
+agent while missing everything the summary compressed.
+
+## Capability can vanish mid-phase
+
+Availability is not assessed only once at phase start. A usage cap, session limit, or API
+error can remove sub-agent dispatch **partway through** a phase or an implement pipeline —
+the agents you already dispatched come back `failed` with a reason like *"You've hit your
+session limit."* When that happens, do not stall: finish the current phase or task **inline
+in this window**, exactly as the "no mechanism available at all" case does, and record which
+steps were **orchestrator-performed** versus **genuinely skipped**. That distinction is the
+point — a review the Lead ran by hand is not the same as a review nobody ran, and the log
+must let the user tell them apart. A second-opinion agent (the Rubber Duck) that could not
+run is a real coverage gap, not a pass: mark it a debt and re-run it after the limit resets,
+before merge — do not let an inline Lead pass stand in for it on a core task.

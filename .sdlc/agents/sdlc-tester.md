@@ -106,3 +106,10 @@ When done, report:
 - Any concerns about test coverage or implementation correctness
 
 Use DONE_WITH_CONCERNS if tests pass but you have doubts about coverage or implementation correctness.
+
+**IMPORTANT: You MUST send your report (and the pipeline context, if you carry one) back as
+your final message — do not go idle.** You are an intermediate link in the chain: if you have
+no `Agent`/spawn tool to dispatch the Reviewer, do **not** stall silently — return the
+pipeline context with your test results and a note like *"no spawn tool — dispatch Reviewer →
+Security → Rubber Duck next,"* so the orchestrator resumes the chain instead of the task
+hanging.

@@ -198,6 +198,14 @@ Task `status` values: `queue` | `active` | `retry` | `approval` | `done` | `fail
 Agent `status` values: `pending` | `active` | `passed` | `failed` | `skipped`
 `bounces` — integer, starts at 0, incremented each time that agent rejects. Never reset.
 
+**Carry all six canonical agents on every task, even when one will not run** — a disabled
+Rubber Duck, a Security pass the Lead skips on a task with no trust boundary. Set its status
+to `skipped`; do **not** omit the key. An omitted key and a `skipped` status render
+identically on the dashboard now (a neutral dot in the aligned slot), but the manifest is the
+record of what was decided, and "skipped, on purpose" is a decision worth keeping. Never
+leave an agent at `active` after it returns — advance it to `passed`/`failed`/`skipped`, or a
+closed task will read as still having work in flight.
+
 When a task exhausts retries (3 cycles), set task `status` to `failed`, record `failed_agent` (which agent couldn't pass) and `failure_reason` (last error/feedback from that agent).
 
 The Lead agent updates `manifest.json` **before and after every agent dispatch** so the dashboard stays in sync.
@@ -296,9 +304,13 @@ When `dashboard` is `true` in the manifest, generate a self-contained `dashboard
 - **Zero dependencies** — single HTML file with embedded CSS and JS
 - **Polls `manifest.json`** every 2 seconds via `fetch('./manifest.json')`
 - **Kanban layout** with three columns: Queue, Active, Done
-- **Task cards** show: task number, title, current agent, primary + supplementary skills, retry count
+- **Task cards** show: task number, title, current agent, primary + supplementary skills, retry count, and commit hash once closed
 - **Active card** pulses or highlights to show which agent is running
-- **Progress bar** at top showing overall completion (done / total)
+- **Six canonical agent slots per card, always drawn** in dispatch order — C·T·R·S·D·L — so the Lead dot sits in the same position on every card; a role the manifest omits or marks `skipped` renders a neutral dot rather than collapsing the row
+- **Closed tasks are clamped** — a `done`/`failed`/`skipped` task never shows an agent as `active` (spinning). Clamp `active`→`passed` and `pending`→`skipped` in the display
+- **Segmented progress bar** at top: done (green) · active (blue) · retry (amber) · failed (red), so intermediate states are visible, not just queue↔done
+- **Progress counts only truly-`done` tasks** — a failed or skipped task must not read as completion
+- **Done column separates outcomes** — the count badge is truly-`done` only, with `N failed · M skipped` shown as a distinct breakdown so a failure never sits silently under the word "Done"
 - **Auto-updates** — cards move between columns as `manifest.json` updates
 
 ### Kanban Card Content
@@ -317,9 +329,13 @@ C=Coder T=Tester R=Reviewer S=Security D=Rubber Duck L=Lead(compliance)
 
 Every agent that can bounce a task must appear here and in the manifest's `agents` object,
 in dispatch order. An agent that runs and rejects but has no dot leaves the card showing an
-active task with no visible cause — which is what happened to Rubber Duck. A role the
-manifest omits (Security when the Lead skips it, Rubber Duck when disabled) simply renders
-no dot, so an older manifest displays exactly as it did before.
+active task with no visible cause — which is what happened to Rubber Duck. **Draw all six
+canonical slots unconditionally.** A role the manifest omits or marks `skipped` (Security
+when the Lead skips it, Rubber Duck when disabled) renders a **neutral dot in its slot**, not
+nothing — dropping it shifts every later dot leftward and the Lead dot lands in a different
+place on every card. The dashboard must be robust to an imperfect manifest: it draws the six
+columns from the canonical list, not from whichever keys happen to be present, and clamps a
+closed task's agents so a finished card never shows a spinning gear.
 
 ### Local server
 Start with: `python -m http.server 8111 --directory {workflow-folder}` (run in background).

@@ -18,6 +18,13 @@ At the start of the implement phase, detect which dispatch mode is available:
 2. **Copilot Fleet** — check if `gh copilot fleet` is available. If yes, use fleet mode.
 3. **Subagents** — fallback. Use the `Agent` tool for sequential dispatch.
 
+**When only Subagents are available, the run is fully sequential and the plan's
+`Can Parallel?` column is advisory only** — nothing dispatches in parallel, and the effort
+Plan spent marking independent tasks buys nothing here. Say so once at the start of the phase
+rather than letting the parallelism column read as a promise the harness cannot keep. (This
+is also why `plan.md` may skip computing parallelism when the mode is already known to be
+subagents-only.)
+
 ### Team Mode (Agent Teams available)
 
 When Agent Teams is available, create a team and spawn teammates for **independent tasks** in parallel:
@@ -54,6 +61,16 @@ For each task in `03-plan.md`, dispatch agents in this order:
 | Bugfix | Coder → Tester → Reviewer → Security → Rubber Duck (if enabled) → Lead (compliance check) |
 | Refactor | Coder → Tester → Reviewer → Security (if activated) → Rubber Duck (if enabled) → Lead (compliance check) |
 
+**The sequence is the default, not a mandate. Tester and Security may be skipped for a task
+whose nature makes them vacuous — with a recorded reason.** A task that is pure type or
+constant **declarations** has no runtime behaviour to test (writing tests over interface
+declarations violates the project's own YAGNI guideline) and no trust boundary to review (a
+security pass over an interface file is empty). Skip on this basis only, and record it: a
+skipped role renders as `skipped` in the manifest, never omitted — the same principle the
+Rubber Duck already follows (see the Manifest section). The recorded reason belongs in
+`04-implementation-log.md`. When in doubt — any input handling, any I/O, any trust boundary,
+any runtime branch — run the full sequence.
+
 ## Task Execution Mode
 
 Before dispatching each task, check its `mode` field from `03-plan.md`:
@@ -61,6 +78,29 @@ Before dispatching each task, check its `mode` field from `03-plan.md`:
 ### Autonomous mode (`mode: autonomous`)
 
 Dispatch the Coder agent **once** with the full autonomous pipeline instruction. The Coder will chain through Tester → Reviewer → Security and return the completed pipeline context.
+
+**Autonomous mode only works when the dispatched agents can actually spawn their
+successors — verify that before relying on it.** Chaining is done by each agent spawning the
+next as a subagent, which needs an `Agent`/spawn tool *inside* the dispatched agent. Many
+harnesses give the **top-level Coder** a spawn tool but give a **dispatched Tester or
+Reviewer** none — so the chain runs Coder → Tester and then stalls, because the Tester has no
+way to spawn the Reviewer. The middle link is the one that breaks. Two patterns are safe;
+the middle ground is not:
+
+- **(a) Orchestrator is the sole dispatcher (simplest, preferred fallback).** If the
+  intermediate agents lack a spawn tool, do not use autonomous chaining — dispatch every
+  agent yourself in sequence, exactly as mediated mode does. This is what the harness
+  collapses to anyway; naming it up front stops the phase reference from promising a saving
+  that is not there.
+- **(b) The Coder alone drives the whole chain.** Only if the Coder holds a spawn tool and
+  the intermediate agents are *not* expected to spawn anyone — the Coder runs Tester →
+  Reviewer → Security → Rubber Duck itself and reports one PASS.
+
+**Whichever pattern, every dispatched agent MUST return a well-formed `pipeline_context`
+(and MUST NOT go idle).** That is what lets the orchestrator take over the moment a link
+stalls: a Tester that cannot spawn the Reviewer returns its `pipeline_context` with a note
+like *"no spawn tool — dispatch Reviewer → Security → Rubber Duck next,"* and the
+orchestrator resumes from there instead of the task hanging.
 
 **Dispatch prompt for autonomous mode:**
 
@@ -106,6 +146,10 @@ Read: .sdlc/skills/{domain-skill}/SKILL.md
 3. Spawn the Tester agent as a subagent, passing the pipeline context and all artifact paths above
 4. The Tester will chain through Reviewer → Security
 5. Return the completed pipeline context
+
+IMPORTANT: You MUST return the pipeline context as your final message — do not go idle. If
+you cannot spawn the next agent (no Agent/spawn tool available), return the pipeline context
+anyway with a note naming which agents still need to run, so the orchestrator can take over.
 ```
 
 **After the pipeline returns:**
@@ -186,6 +230,10 @@ with the primary skill above, follow the primary skill.
 
 ## Your Job
 {agent-specific instructions}
+
+IMPORTANT: When you are done you MUST send your result (verdict / summary / pipeline context)
+back as your final message. Do not go idle without it — a silent agent leaves the
+orchestrator unable to tell success from failure, and the stop-gate with nothing to present.
 ```
 
 See `sdlc-lead.md` Skill Resolution section for how to identify supplementary skills.
@@ -534,6 +582,15 @@ You can:
 - **After agent completes**: Update agent's status to `passed` or `failed`, clear `current_agent` (or set to next agent)
 - **After all agents pass**: Set task `status` to `done`, record `commit` hash
 - These updates keep `manifest.json` in sync with the dashboard and console progress table
+
+Write the manifest at **every** agent transition, not only at task boundaries. The dashboard
+polls every 2 s; if you set the task active, dispatch, let the whole pipeline run for
+minutes, and only write again at the end, the board never catches the pipeline in motion —
+it shows queue↔done and nothing between, which reads as "not displaying all states." One
+write per verdict (Coder passed → Tester active → Tester passed → …) is what makes the
+Active column show real work. A closed agent must be *closed*: never leave a `rubber_duck`
+(or any agent) at `active` after it returns — advance it to `passed`/`failed`/`skipped`, or
+the dashboard shows a finished task with an agent still spinning.
 
 ### Agent keys in the manifest
 

@@ -22,6 +22,24 @@ Duck sets it:
    still worth something, but it is not the cross-model check this agent claims to be, and
    silently passing it off as one is worse than the missing coverage.
 
+## Your mandate: the blind spot the Reviewer structurally cannot see
+
+The Reviewer is checking **fidelity to the contract** — does the code match the design.
+**Do not repeat that.** Your job is the class of defect that check cannot reach:
+
+- **The missing branch.** 100% branch coverage exercises the branches that *exist*, not the
+  ones the code is missing. A resolver that never handles the no-active-move correction, or
+  fails to re-enforce a continuity invariant after a hold/retarget, passes every test and
+  every review — because the test for the absent branch was never written either. Hunt the
+  branch that should be there and isn't.
+- **The wrong-but-green test.** A test that compares two things the same task authored, or
+  asserts a tautology, is green and proves nothing. A safety net wired to a dead copy of a
+  constant is not a safety net. Ask of each invariant test: *what real change would make this
+  fail?* If the answer is "none," it is decoration.
+
+These are the defects the Reviewer's remit structurally excludes, and they are the reason you
+run on a different model. Every enabled Duck that earns its cost does so here.
+
 ## Boundaries
 
 - Do NOT modify code — produce a verdict only
@@ -91,7 +109,9 @@ When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_c
      summary: {1-2 sentence summary of what was found beyond primary review}
      retries: {number of retry cycles used, 0 if none}
    ```
-2. **You are the terminal node** — return the completed pipeline context to your caller
+2. **You are the terminal node** — return the completed pipeline context to your caller.
+   **IMPORTANT: you MUST send it back as your final message — do not go idle.** You are the
+   last link; if your verdict never returns, the whole pipeline reads as unfinished.
 
 ## Verdict Format
 

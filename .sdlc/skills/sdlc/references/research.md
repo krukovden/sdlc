@@ -49,6 +49,41 @@ If missing, present warning:
 - **Options inventory**: List viable approaches with pros/cons
 - **Output focus**: Options inventory — what are the choices
 
+## Verified command baseline (every workflow)
+
+Design and Plan will write commands into acceptance criteria — `npm test`, `tsc --noEmit`,
+`npm run lint`, `npm run build`, coverage globs. Every one of those is a claim about *this*
+repository, and claims written from memory are wrong often enough to corrupt a whole phase:
+a `lint` script that is really `--fix` across the repo, a test suite already red at the
+branch point, a build that fails on this OS, a `--testPathPattern` flag the installed test
+runner renamed. Research is already reading the repo, so it is the cheapest place to find out.
+
+While you are in the codebase, **run each candidate command once against the current branch
+point** and record what actually happens. This costs a handful of commands once per workflow
+and removes the single most common source of false acceptance criteria (see the notes in
+`plan.md`). Capture:
+
+- the **exact working invocation** for build, test, type-check, lint, and coverage — with
+  the real flags this repo's tool versions accept (e.g. the runner's actual
+  path-filter flag), not the ones you remember;
+- the **branch-point baseline** for anything that isn't green: "155 pre-existing `tsc`
+  errors, all in unrelated `.spec.ts`", "`robotic-arm` suite 13 failed / 14 passed" — so a
+  criterion can say *"no new failures vs this baseline"* instead of the false *"passes"*;
+- any command that **must not be run as-written** — a repo-wide `lint --fix` that reformats
+  unrelated files, a `prebuild` that shells out to a Windows-only tool on macOS — and the
+  substitute to use instead;
+- config that changes how a command resolves — the test runner's `rootDir` (coverage globs
+  are relative to it), monorepo project boundaries, required env vars.
+
+Read the target repo's `CLAUDE.md` / `AGENTS.md` **gotcha sections** and fold any
+platform-specific command substitutions they document into this baseline — a documented
+"use `copy-shared-unix`, not `npm run build`, on macOS" belongs here so Plan never writes the
+broken form.
+
+Record all of this in the **Verified Command Baseline** section of `01-research.md` (see the
+output structure below). Plan consumes it directly; a command that never appears in this
+section has not been verified and must not become an acceptance criterion unchecked.
+
 ## Web Search
 
 Use web search when local codebase analysis is not enough. Do NOT skip this — external context prevents outdated decisions.
@@ -121,6 +156,17 @@ Write `01-research.md` to the workflow folder with this structure:
 ## Patterns to Follow
 - {existing pattern 1 — follow this convention}
 - {existing pattern 2}
+
+## Verified Command Baseline
+{Each command was run once against the current branch point. Plan consumes this table.}
+
+| Command | Verified invocation (real flags) | Branch-point result | Notes / substitutions |
+|---------|----------------------------------|---------------------|-----------------------|
+| Build   | `{exact command}` | {green / fails how} | {e.g. macOS: use `copy-shared-unix`, not `npm run build`} |
+| Test    | `{exact command, correct flags}` | {X passed / Y failed — where} | {baseline failures are pre-existing; criteria say "no new failures vs this"} |
+| Type-check | `{exact command}` | {N pre-existing errors, where} | |
+| Lint    | `{exact command}` | {green / rewrites files} | {e.g. `lint` is repo-wide `--fix` — do NOT run as an acceptance check} |
+| Coverage | `{exact command}` | {rootDir = `{dir}`; globs are relative to it} | |
 
 ## Risks & Concerns
 - {risk 1}

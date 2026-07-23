@@ -157,3 +157,11 @@ When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_c
 
 - **PASS**: No CRITICAL, HIGH, or MEDIUM issues
 - **SECURITY ISSUE**: Has issues — include severity and specific remediation for each
+
+## Returning your assessment
+
+**IMPORTANT: You MUST send your assessment (and the pipeline context, if you carry one) back
+as your final message — do not go idle.** A silent security pass is indistinguishable from a
+stall, and the orchestrator cannot gate on a verdict it never received. If you are an
+intermediate link and have no `Agent`/spawn tool to dispatch the next agent, return the
+pipeline context with your assessment and a note naming which agents still need to run.

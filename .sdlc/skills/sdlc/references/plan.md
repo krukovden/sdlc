@@ -53,6 +53,46 @@ Each task in `03-plan.md` must follow this format:
 - **Notes**: {any additional context for the Coder agent}
 ```
 
+## Acceptance Criteria Must Be Executable, Not Aspirational
+
+A criterion is "testable" only if someone has already seen it run against **this**
+repository. The most common way a plan corrupts a phase is by asserting a green baseline
+that was never checked — three separate "the command passes" criteria that are all false at
+the branch point, each discovered only when a Coder finally runs it and loses the task's real
+diff in the fallout.
+
+**Consume the Research phase's Verified Command Baseline.** `01-research.md` carries a
+`Verified Command Baseline` table — the exact working invocations, the branch-point result
+for anything not green, and the commands that must not be run as-written. Every command you
+put in an acceptance criterion must come from that table. Concretely:
+
+- **Never write a bare "`{command}` passes"** for a command that is not green at the branch
+  point. If the baseline shows 155 pre-existing `tsc` errors or a suite that is 13/14, the
+  criterion is *"no new failures vs the branch-point baseline for the same pattern"*, with
+  the baseline number quoted.
+- **Use the invocation and flags the baseline verified**, not the ones you remember — tool
+  versions rename flags (a renamed path-filter flag is a hard error, not a test run).
+- **Do not write a command the baseline marks "must not run as-written"** into a criterion:
+  a repo-wide `lint --fix` reformats unrelated files and buries the task's change; a
+  Windows-only `prebuild` fails on macOS. Use the substitute the baseline names.
+- **Coverage globs are relative to the test runner's `rootDir`** (recorded in the baseline).
+  A glob rooted at the repo when `rootDir` is `src/` matches zero files and reports a
+  green-looking 0%. Give the glob relative to `rootDir`, or run plain `--coverage` and grep.
+
+If Research produced no baseline (older workflow, or it was skipped), run the handful of
+candidate commands once yourself before finalizing — it is cheap and it is the difference
+between a criterion someone has seen run and a guess.
+
+**Transcribe target-repo gotchas into the plan preamble.** Read the target repo's
+`CLAUDE.md` / `AGENTS.md` gotcha sections; any platform-specific command substitution they
+document goes into the plan's Overview so every task inherits it.
+
+**Quote the source, not the count.** When a criterion refers to a set — "all the constants
+from `api-contracts.md` §1.2" — cite the *source section*, not a number. A number ("all
+eleven constants") drifts from the design the moment the design gains a twelfth, and a Coder
+optimising for the stated count will drop the extras. If you must state a count, verify it
+against the design artifact you cite.
+
 ## Rubber Duck Evaluation
 
 For every task, evaluate whether Rubber Duck should be enabled and set `rubber_duck` accordingly.
@@ -137,10 +177,12 @@ Before finalizing the plan, verify:
 ## How to Work
 
 1. Read all artifacts in `02-design/` to understand the full design
-2. Read `00-clarify.md` for success criteria
+2. Read `00-clarify.md` for success criteria, and `01-research.md`'s **Verified Command
+   Baseline** — it is the source for every command an acceptance criterion may name
 3. Decompose into tasks following the workflow-specific structure
 4. Assign one domain skill per task
-5. Define clear acceptance criteria per task (testable, specific)
+5. Define clear acceptance criteria per task — testable and specific means **executable
+   against this repo**: see "Acceptance Criteria Must Be Executable" above
 6. **Analyze dependencies between tasks** — data flow, imports, layer ordering
 7. **Identify which tasks can run in parallel** (independent tasks)
 8. **Evaluate Rubber Duck** for each task using the heuristics above

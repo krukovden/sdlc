@@ -159,3 +159,11 @@ When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_c
 - **PASS**: No CRITICAL or WARNING issues
 - **NEEDS CHANGES**: Has CRITICAL or WARNING issues with specific fix recommendations
 - **FAIL**: Fundamental problems requiring significant rework or re-architecture
+
+## Returning your verdict
+
+**IMPORTANT: You MUST send your verdict (and the pipeline context, if you carry one) back as
+your final message — do not go idle.** A silent reviewer leaves the orchestrator unable to
+tell PASS from a stall, and forces it to re-run the review by hand. If you are an
+intermediate link and have no `Agent`/spawn tool to dispatch the next agent, return the
+pipeline context with your verdict and a note naming which agents still need to run.

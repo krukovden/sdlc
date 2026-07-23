@@ -82,8 +82,39 @@ describe('rubber duck visibility', () => {
         );
       });
 
-      it('renders nothing for a role the manifest omits (backward compatible)', () => {
-        assert.match(readSource(dashboard), /if \(!agentData\) return '';/);
+      it('draws all six canonical slots, rendering a missing role as a neutral dot', () => {
+        // The card must draw the six canonical slots unconditionally so the Lead dot lands in
+        // the same position on every card. A role the manifest omits (an optional Security, a
+        // disabled Rubber Duck) renders a neutral dot in its slot, not nothing — the older
+        // "return '' for a missing role" behaviour collapsed the row and misaligned the board.
+        const content = readSource(dashboard);
+        assert.ok(
+          !/if \(!agentData\) return '';/.test(content),
+          'dropping a missing role shifts every later dot and misaligns the cards',
+        );
+        assert.ok(
+          !/\.filter\(role =>\s*task\.agents/.test(content),
+          'the pipeline must map the canonical ROLES, not filter to present keys',
+        );
+        assert.match(content, /agentData \|\| \{status: 'skipped'/, 'a missing role falls back to a neutral dot');
+      });
+
+      it('clamps a closed task so a finished card never shows a spinning agent', () => {
+        // A done/failed/skipped task cannot legitimately have a working agent; the display
+        // clamps active -> passed and pending -> skipped regardless of an inconsistent manifest.
+        const content = readSource(dashboard);
+        assert.match(content, /function clampStatus/);
+        assert.match(content, /if \(status === 'active'\) return 'passed';/);
+        assert.match(content, /if \(status === 'pending'\) return 'skipped';/);
+      });
+
+      it('counts only truly-done tasks as complete and breaks out failed/skipped', () => {
+        // A failed or skipped task must not read as forward progress: the Done badge counts
+        // only `done`, with failed/skipped shown as a distinct breakdown.
+        const content = readSource(dashboard);
+        assert.match(content, /countIn\(\['done'\]\)/);
+        assert.match(content, /done-breakdown/);
+        assert.match(content, /seg-failed/, 'the progress bar segments failed separately from done');
       });
     });
   }

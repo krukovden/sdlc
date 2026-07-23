@@ -35,6 +35,12 @@ candidate with one line each:
 A skip with no reason recorded is not a skip — it is an artifact you forgot. The stop-gate
 shows this table, so the user sees both what was built and what was deliberately left out.
 
+**Adding is allowed too.** The candidate list is a floor, not a ceiling. When a real
+contract has no home in the standard set — a pose-and-render model, a generator spec, any
+interface the Coder will implement against — produce it as its own artifact and give it a
+row in the README table like any other. An unlisted contract left unwritten is the same
+failure as a listed one skipped silently: the Coder invents it.
+
 ## Designing the Interfaces
 
 Run the `architect` skill and use its vocabulary — **module, interface, seam, adapter,
@@ -106,6 +112,42 @@ When a seam moves, the tests that were bound to the old shape do not become extr
 
 The `Tester` agent consumes this file, so "delete these" has to be as explicit as "add these" or it will not happen.
 
+## Resolve What the Design Asserts Against the Real Tree
+
+A design artifact is a set of claims about a repository that does not yet contain the code.
+Three kinds of claim are routinely written from imagination and are false the moment they
+meet the tree — each one produces a *silent* failure, code that looks like it works and does
+nothing:
+
+**A test that "mitigates a risk" must actually be able to fail.** For every risk the design
+claims to neutralise *by a test* — "a change to `windowMs` now fails a test instead of
+silently degrading the widget" — name the test **and the artifact it is pinned to**, and
+confirm the test would fail if that artifact changed. A test that compares two constants the
+same task authored (a value and its dead copy in `shared/`) is a tautology, not a pin: it
+cannot fail, and no future edit trips it. The pin must reference at least one file **outside
+the task's own new files** — the real load-bearing value, not a mirror of it. This is the
+class of defect the Reviewer structurally cannot catch, because the Reviewer checks code
+against the design and here the design is the thing at fault.
+
+**Every hard-coded relative path must be resolved once, now.** A `../../../..` computed from
+a spec directory, a `SIMULATOR_PATH`, any path baked into a test or artifact — resolve it
+against the actual working tree before shipping the design. The failure mode of a wrong path
+is worst when the test is written to *skip when the target is absent*: a miscounted `..`
+resolves to a directory that does not exist, the test `existsSync` → false → **skips on
+every run, forever**, and a permanent silent skip is indistinguishable from "target
+legitimately absent." So (a) resolve the path, and (b) make skip-conditions log enough to
+tell *absent* from *misconfigured*.
+
+**A new member named on an existing class must not already exist on it.** When the design
+names a new field, signal, or method on a class the code extends — `connected` on a subclass
+of a socket that already declares `get connected()` — grep the base class's declared members
+first. A collision is a hard build failure (TS2416/2610/4114 and their equivalents), not a
+lint nit, and it ripples into every artifact that referenced the name.
+
+The common root under all three: a path, identifier, or invariant written into an artifact
+and never checked against the code it describes. Checking is cheap; the phase it wastes when
+skipped is not.
+
 ## Standard Verifications Content
 
 The `standard-verifications.md` content varies by workflow type:
@@ -113,6 +155,11 @@ The `standard-verifications.md` content varies by workflow type:
 - **Feature**: Architecture compliance, API contract match, security checks, performance considerations, accessibility
 - **Bugfix**: Regression verification, fix correctness, no side effects, blast radius confirmed
 - **Refactor**: Behavior preservation, no API changes, dependency integrity, test coverage maintained
+
+**Standing item, every workflow type:** every test the design claims enforces an invariant
+must reference at least one file **outside the task's own new files** — otherwise it is a
+tautology that cannot fail (see "Resolve What the Design Asserts" above). Add this as an
+explicit checklist line so the Reviewer verifies it.
 
 ## Spike Completion
 

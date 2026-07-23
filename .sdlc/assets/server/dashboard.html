@@ -15,8 +15,18 @@
   .header-meta{font-size:11px;color:var(--muted)}
   .progress-wrap{padding:7px 20px;border-bottom:1px solid var(--border)}
   .progress-label{font-size:11px;color:var(--muted);margin-bottom:4px}
-  .progress-bar{height:3px;background:var(--border);border-radius:2px}
-  .progress-fill{height:3px;background:var(--green);border-radius:2px;transition:width .5s}
+  .progress-bar{height:5px;background:var(--border);border-radius:2px;display:flex;overflow:hidden}
+  .seg{height:5px;transition:width .5s}
+  .seg-done{background:var(--green)}
+  .seg-active{background:var(--blue)}
+  .seg-retry{background:var(--yellow)}
+  .seg-failed{background:var(--red)}
+  .metrics{display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:var(--muted);margin-top:6px}
+  .metrics span b{color:var(--text);font-weight:600}
+  .now-line{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:5px}
+  .now-pip{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse-y 1.2s infinite;flex-shrink:0}
+  .done-breakdown{font-size:10px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
+  .card-commit{font-size:10px;color:var(--muted);font-family:monospace;margin-top:7px}
   .phases-row{display:flex;gap:6px;padding:8px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap}
   .pill{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
   .pill-done{background:#23863622;color:#3fb950;border:1px solid #2ea04355}
@@ -53,7 +63,7 @@
   .pipe-agents{display:flex;align-items:center;gap:2px}
   .pipe-arrow{color:var(--border);font-size:10px;margin:0 1px}
   .dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;flex-shrink:0}
-  .r-c{background:#1f6feb}.r-t{background:#8957e5}.r-r{background:#238636}.r-s{background:#b91c1c}.r-l{background:#e3722a}
+  .r-c{background:#1f6feb}.r-t{background:#8957e5}.r-r{background:#238636}.r-s{background:#b91c1c}.r-d{background:#14b8a6}.r-l{background:#e3722a}
   .s-pending{opacity:.22}
   .s-approved{box-shadow:0 0 0 2px var(--green)}
   .s-bumpy{box-shadow:0 0 0 2px var(--yellow)}
@@ -89,11 +99,18 @@
 </div>
 <div id="progress-wrap" class="progress-wrap" style="display:none">
   <div id="progress-label" class="progress-label"></div>
-  <div class="progress-bar"><div id="progress-fill" class="progress-fill" style="width:0%"></div></div>
+  <div class="progress-bar">
+    <div id="seg-done" class="seg seg-done" style="width:0%"></div>
+    <div id="seg-active" class="seg seg-active" style="width:0%"></div>
+    <div id="seg-retry" class="seg seg-retry" style="width:0%"></div>
+    <div id="seg-failed" class="seg seg-failed" style="width:0%"></div>
+  </div>
+  <div id="metrics" class="metrics"></div>
+  <div id="now-line" class="now-line"></div>
 </div>
 <div id="phases-row" class="phases-row" style="display:none"></div>
 <div class="legend">
-  <span style="font-weight:600">Agent pipeline (C→T→R→S→L):</span>
+  <span style="font-weight:600">Agent pipeline (C→T→R→S→D→L):</span>
   <span class="li"><span class="ld l-pending"></span>not reached</span>
   <span class="li"><span class="ld l-working"></span>working now</span>
   <span class="li"><span class="ld l-ok"></span>approved</span>
@@ -111,7 +128,7 @@
     <div id="col-active" class="col-body"></div>
   </div>
   <div class="col col-done">
-    <div class="col-head">Done <span id="count-done" class="col-count">0</span></div>
+    <div class="col-head">Done <span id="count-done" class="col-count">0</span><span id="done-breakdown" class="done-breakdown"></span></div>
     <div id="col-done" class="col-body"></div>
   </div>
 </div>
@@ -123,8 +140,10 @@
 
 <script>
 // Pipeline order. rubber_duck sits between security and lead, matching the dispatch order
-// in references/implement.md. agentHtml() returns '' for a role the manifest omits, so a
-// workflow created before the duck existed — or one that disabled it — renders unchanged.
+// in references/implement.md. The six canonical slots are drawn UNCONDITIONALLY on every
+// card: a role the manifest omits (an optional Security, a disabled Rubber Duck, a manifest
+// predating either) renders as a neutral dot rather than vanishing, so the Lead dot lands in
+// the same horizontal position on every card and the columns stay aligned.
 const ROLES = ['coder','tester','reviewer','security','rubber_duck','lead'];
 const ROLE_LETTER = {coder:'C',tester:'T',reviewer:'R',security:'S',rubber_duck:'D',lead:'L'};
 const ROLE_COLOR  = {coder:'#1f6feb',tester:'#8957e5',reviewer:'#238636',security:'#b91c1c',rubber_duck:'#14b8a6',lead:'#e3722a'};
@@ -132,9 +151,19 @@ const ROLE_CLASS  = {coder:'r-c',tester:'r-t',reviewer:'r-r',security:'r-s',rubb
 const ROLE_TITLE  = {coder:'Coder',tester:'Tester',reviewer:'Reviewer',security:'Security',rubber_duck:'Rubber Duck',lead:'Lead'};
 const PHASE_ORDER = ['clarify','research','design','plan','implement'];
 
+// A closed task cannot legitimately have a working or unreached agent. Clamp the display so
+// a done/failed/skipped card never shows a spinning gear (active → passed) or a dangling
+// unreached dot (pending → skipped), regardless of an inconsistent manifest.
+function clampStatus(status, taskClosed) {
+  if (!taskClosed) return status;
+  if (status === 'active') return 'passed';
+  if (status === 'pending') return 'skipped';
+  return status;
+}
+
 function agentHtml(role, agentData, isCurrent) {
-  if (!agentData) return '';
-  const {status, bounces=0} = agentData;
+  // A missing/omitted role still draws a slot — a neutral dot — so all six columns align.
+  const {status, bounces=0} = agentData || {status: 'skipped', bounces: 0};
   const color = ROLE_COLOR[role];
   const letter = ROLE_LETTER[role];
   const cls = ROLE_CLASS[role];
@@ -167,14 +196,20 @@ function cardHtml(task, cardClass) {
   const skills = task.skills || {};
   const skillText = [skills.primary, ...(skills.supplementary||[])].filter(Boolean).join(' · ');
 
-  // Render the roles this task actually carries, then join with arrows — deriving the
-  // separator from the index in ROLES leaves a trailing arrow whenever the final roles
-  // are absent (an optional Security, a disabled Rubber Duck, a manifest predating either).
+  // Always draw the six canonical slots, in order, joined by arrows. A missing key renders a
+  // neutral dot (agentHtml handles it), so columns align on every card. A closed task's agent
+  // states are clamped so a finished card never shows a spinning gear.
+  const taskClosed = ['done','failed','skipped'].includes(task.status);
   const pipeHtml = ROLES
-    .filter(role => task.agents?.[role])
-    .map(role => agentHtml(role, task.agents[role], task.current_agent === role))
-    .filter(Boolean)
+    .map(role => {
+      const raw = task.agents?.[role];
+      const shown = raw ? {...raw, status: clampStatus(raw.status, taskClosed)} : null;
+      return agentHtml(role, shown, !taskClosed && task.current_agent === role);
+    })
     .join('<span class="pipe-arrow">›</span>');
+
+  const commitHtml = task.commit
+    ? `<div class="card-commit">⎇ ${escHtml(String(task.commit).slice(0,9))}</div>` : '';
 
   return `<div class="card ${cardClass}">
     <div class="card-id">#${escHtml(String(task.id))}</div>
@@ -184,6 +219,7 @@ function cardHtml(task, cardClass) {
       <div class="pipe-agents">${pipeHtml}</div>
       ${bounceBadge}
     </div>
+    ${commitHtml}
   </div>`;
 }
 
@@ -219,14 +255,58 @@ function render(data) {
   document.getElementById('header-meta').textContent =
     `Created ${wf.created || '?'} · phase: ${wf.current_phase || '?'}`;
 
-  // Progress
+  // Progress — segmented by status, and counts only truly-`done` tasks as complete so a
+  // failure or skip never reads as forward progress.
   const tasks = wf.tasks || [];
-  const done = tasks.filter(t => t.status === 'done').length;
   const total = tasks.length;
+  const countIn = statuses => tasks.filter(t => statuses.includes(t.status)).length;
+  const done    = countIn(['done']);
+  const failed  = countIn(['failed']);
+  const skipped = countIn(['skipped']);
+  const activeN = countIn(['active','approval']);
+  const retryN  = countIn(['retry']);
+  const queuedN = countIn(['queue']);
   const pct = total > 0 ? Math.round(done / total * 100) : 0;
+  const pctOf = n => total > 0 ? (n / total * 100) : 0;
+
   document.getElementById('progress-label').textContent =
-    `Overall ${done} / ${total} tasks complete`;
-  document.getElementById('progress-fill').style.width = pct + '%';
+    `Overall ${done} / ${total} tasks complete · ${pct}%`;
+  document.getElementById('seg-done').style.width   = pctOf(done) + '%';
+  document.getElementById('seg-active').style.width = pctOf(activeN) + '%';
+  document.getElementById('seg-retry').style.width  = pctOf(retryN) + '%';
+  document.getElementById('seg-failed').style.width = pctOf(failed) + '%';
+
+  // Metrics strip — the whole session at a glance.
+  const commits = tasks.filter(t => t.commit).length;
+  const retries = tasks.reduce((n, t) => n + (t.retry_count || 0), 0);
+  const metricParts = [
+    `<span>done <b>${done}</b></span>`,
+    `<span>active <b>${activeN}</b></span>`,
+    `<span>queued <b>${queuedN}</b></span>`,
+    `<span>commits <b>${commits}</b></span>`,
+    `<span>retries <b>${retries}</b></span>`,
+  ];
+  if (failed)  metricParts.push(`<span>failed <b style="color:var(--red)">${failed}</b></span>`);
+  if (skipped) metricParts.push(`<span>skipped <b>${skipped}</b></span>`);
+  if (wf.issues_tracked != null) metricParts.push(`<span>issues <b>${escHtml(String(wf.issues_tracked))}</b></span>`);
+  metricParts.push(`<span><b>${pct}%</b> complete</span>`);
+  document.getElementById('metrics').innerHTML = metricParts.join('');
+
+  // "Now" line — the task+agent in motion, or the next queued task, or all-closed.
+  const activeTask = tasks.find(t => ['active','retry','approval'].includes(t.status));
+  const nowEl = document.getElementById('now-line');
+  if (activeTask) {
+    const ag = activeTask.current_agent
+      ? (ROLE_TITLE[activeTask.current_agent] || activeTask.current_agent) : 'dispatching';
+    nowEl.innerHTML = `<span class="now-pip"></span>#${escHtml(String(activeTask.id))} ${escHtml(activeTask.title || '')} — ${escHtml(ag)}`;
+  } else if (total && tasks.every(t => ['done','failed','skipped'].includes(t.status))) {
+    nowEl.innerHTML = `<span class="now-pip" style="background:var(--green);animation:none"></span>all ${total} tasks closed`;
+  } else {
+    const next = tasks.find(t => t.status === 'queue');
+    nowEl.innerHTML = next
+      ? `<span class="now-pip" style="animation:none"></span>idle — next: #${escHtml(String(next.id))}`
+      : '';
+  }
 
   // Phase pills
   const phases = wf.phases || {};
@@ -240,7 +320,14 @@ function render(data) {
 
   document.getElementById('count-queue').textContent  = queue.length;
   document.getElementById('count-active').textContent = active.length;
-  document.getElementById('count-done').textContent   = doneT.length;
+  // The Done badge counts only truly-`done`; failed/skipped are shown as a separate
+  // breakdown so a closed-but-unsuccessful task no longer reads as "Done".
+  document.getElementById('count-done').textContent   = done;
+  const breakdown = [];
+  if (failed)  breakdown.push(`<span style="color:var(--red)">${failed} failed</span>`);
+  if (skipped) breakdown.push(`<span style="color:var(--muted)">${skipped} skipped</span>`);
+  document.getElementById('done-breakdown').innerHTML =
+    breakdown.length ? ' · ' + breakdown.join(' · ') : '';
 
   document.getElementById('col-queue').innerHTML =
     queue.length ? queue.map(t => cardHtml(t, '')).join('') :
