@@ -66,7 +66,8 @@ Tasks are ordered by architectural layer:
 
 ## Agent Activation
 
-All five agents are activated for every implementation task.
+All five core agents are activated for every implementation task. The Rubber Duck runs in
+addition on the tasks the Plan phase enabled it for.
 
 | Agent | Activation | Role |
 |-------|------------|------|
@@ -75,11 +76,12 @@ All five agents are activated for every implementation task.
 | **Tester** | Always | Writes and runs tests based on testing strategy |
 | **Reviewer** | Always | Reviews code quality against standard verifications and principles |
 | **Security** | Always | Scans code for security issues, validates against API contracts |
+| **Rubber Duck** | When the plan enabled it for the task | Second opinion on a different model — hunts the missing branch and the wrong-but-green test |
 
 ### Agent Pipeline Per Task
 
 ```
-Lead (dispatch) -> Coder -> Tester -> Reviewer -> Security -> Lead (compliance) -> Commit
+Lead (dispatch) -> Coder -> Tester -> Reviewer -> Security -> [Rubber Duck] -> Lead (compliance) -> Commit
 ```
 
 Each agent-to-agent handoff has a retry loop (max 3 cycles). If an agent fails, Coder fixes and the failing agent re-evaluates.

@@ -72,6 +72,7 @@ Security agent activation is decided by the Lead based on refactoring scope.
 | **Tester** | Always | Writes tests to verify behavior is preserved |
 | **Reviewer** | Always | Reviews code quality and verifies before/after expectations |
 | **Security** | Optional (Lead decides) | Scans for security regressions introduced by structural changes |
+| **Rubber Duck** | When the plan enabled it for the task | Second opinion on a different model — hunts the missing branch and the wrong-but-green test |
 
 The Lead activates Security when:
 - The refactoring touches authentication, authorization, or data access layers
@@ -85,7 +86,7 @@ The Lead skips Security when:
 ### Agent Pipeline Per Task
 
 ```
-Lead (dispatch) -> Coder -> Tester -> Reviewer -> [Security] -> Lead (compliance) -> Commit
+Lead (dispatch) -> Coder -> Tester -> Reviewer -> [Security] -> [Rubber Duck] -> Lead (compliance) -> Commit
 ```
 
 Each agent-to-agent handoff has a retry loop (max 3 cycles). If an agent fails, Coder fixes and the failing agent re-evaluates.

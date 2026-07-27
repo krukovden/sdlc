@@ -82,8 +82,20 @@ describe('rubber-duck source contracts', () => {
 
     it('defines opposite-model selection logic', () => {
       const content = readSource('.sdlc/agents/sdlc-lead.md');
-      assert.ok(content.includes('claude-opus-4-7'), 'Missing Opus model reference');
+      assert.ok(content.includes('rubber_duck_model'), 'Missing the config pin');
+      assert.ok(content.includes('tier alias'), 'Missing tier-alias selection rule');
+      assert.ok(content.includes('at call time'), 'Model list must be read at dispatch time');
       assert.ok(content.includes('GPT'), 'Missing GPT model reference');
+    });
+
+    // The Lead used to name versioned ids (claude-opus-4-7) in its selection table. A
+    // version string freezes on one release; once retired the dispatch tool rejects the
+    // `model` parameter, the Rubber Duck dispatch fails, and the Duck silently never runs.
+    // Tier aliases follow the tier as it advances.
+    it('names no versioned model id in the selection rule', () => {
+      const content = readSource('.sdlc/agents/sdlc-lead.md');
+      const versioned = content.match(/claude-[a-z]+-\d+-\d+/g);
+      assert.equal(versioned, null, `versioned model ids found: ${versioned}`);
     });
   });
 

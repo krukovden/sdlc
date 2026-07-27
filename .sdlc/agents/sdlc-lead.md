@@ -57,6 +57,15 @@ The agent sequence per workflow type:
 | Bugfix | Coder → Tester → Reviewer → Security → Rubber Duck (if enabled) → Lead (compliance check) |
 | Refactor | Coder → Tester → Reviewer → Security (if activated) → Rubber Duck (if enabled) → Lead (compliance check) |
 
+**You dispatch the whole sequence, including its tail.** Security and the Rubber Duck are the
+two that historically went missing — under the old chaining they hung off the end of a chain
+that broke in the middle, and nobody noticed a pipeline that had stopped one agent short of
+them. There is no chain now: Security is a dispatch you make on every Feature and Bugfix task
+(and on a Refactor task per the activation rule below), and the Rubber Duck is a dispatch you
+make on every task the plan enabled it for. Do not treat a task as complete while either is
+still `pending` — see the dispatch loop in `.sdlc/skills/sdlc/references/implement.md`, which
+gates the compliance check on all six agents holding a terminal status.
+
 ### Security Activation for Refactor
 
 Activate Security if the refactor touches: authentication/authorization logic, API boundaries or endpoints, data access patterns, input validation, secrets handling.
@@ -115,22 +124,33 @@ When constructing the agent prompt (see Agent Dispatch Template in `.sdlc/skills
 
 ## Rubber Duck Model Selection
 
-When a task has `rubber_duck.enabled: true`, determine the Rubber Duck model at dispatch time — always the opposite of the primary agents' model:
+When a task has `rubber_duck.enabled: true`, determine the Rubber Duck model at dispatch time — always a different tier from the one the primary agents ran on:
 
-| Environment | Primary agents | Rubber Duck model |
-|-------------|---------------|------------------|
-| Claude Code | Sonnet (default) | claude-opus-4-7 |
-| Claude Code | Opus | claude-sonnet-4-6 |
-| Copilot CLI | Claude (any) | GPT-5.4 (or best available GPT) |
-| Copilot CLI | GPT (any) | claude-opus-4-7 |
+1. **`rubber_duck_model` in `.sdlc/config.json`** — if set, use it verbatim.
+2. **Otherwise read the `model` options your dispatch tool accepts *at call time*** and pick a
+   tier different from the primary agents'. Pass a **tier alias** (`opus`, `sonnet`, `fable`,
+   … — whatever that list actually offers), never a versioned id: an alias follows the tier
+   as it advances, a version string freezes on one release and, once that release is retired,
+   is rejected by the tool. A rejected `model` parameter fails the dispatch, and a Rubber Duck
+   that fails to dispatch is a Rubber Duck that silently never ran.
+3. **If the dispatch tool exposes no `model` parameter**, dispatch anyway — the Duck runs on
+   the same model as everything before it, and its verdict must say so (see
+   `sdlc-rubber-duck.md`). A same-model second opinion is worth less than a cross-model one
+   and worth far more than a skipped agent. **Never skip the Duck over model selection.**
+
+| Environment | Primary agents | Rubber Duck |
+|-------------|---------------|-------------|
+| Claude Code | the default tier | the other strong tier the `model` list offers |
+| Copilot CLI | Claude (any) | the best available GPT |
+| Copilot CLI | GPT (any) | the best available Claude |
 
 **Environment detection:**
 - Claude Code: `TeamCreate` tool is available
 - Copilot CLI: `gh copilot fleet` is available
 
-If Copilot CLI does not expose the current primary provider, default to GPT-5.4 as Rubber Duck.
+If Copilot CLI does not expose the current primary provider, default the Rubber Duck to GPT.
 
-Pass the selected model to the `Agent` tool via the `model` parameter when dispatching the Rubber Duck agent.
+Pass the selected model to the `Agent` tool via the `model` parameter when dispatching the Rubber Duck agent, and record the model it actually ran on in `04-implementation-log.md`.
 
 ## Design Compliance Check
 
@@ -191,12 +211,18 @@ Read and update `manifest.json` in the workflow folder (`sdlc-doc/workflows/{typ
 - **Before starting a phase**: Set `current_phase` and phase `status` to `in_progress`
 - **After phase approval**: Set phase `status` to `approved` with `completed_at` timestamp
 - **Before dispatching an agent**: Set task `status` to `active`, `current_agent` to agent name, agent `status` to `active`
-- **After agent passes**: Set agent `status` to `passed`, clear `current_agent`
+- **After agent passes**: Set agent `status` to `passed` and `current_agent` to the **next** agent in the sequence — only the last agent of the task clears it
 - **After agent rejects**: Set agent `status` to `failed`, increment `agents[role].bounces` by 1, set `current_agent` back to `"coder"` for the fix cycle. `bounces` is never reset — it records the lifetime rejection count for that agent on that task.
-- **After task completes**: Set task `status` to `done`, record `commit` hash, clear `current_agent`, set all remaining agent statuses to `passed`
+- **After task completes**: Set task `status` to `done`, record `commit` hash, clear `current_agent`. Every agent must already be `passed`, `failed`, or `skipped` by then — **never bulk-close the remainder to `passed`**: that backdates verdicts nobody rendered and marks agents that never ran as having passed. An agent still `pending` here means you skipped a dispatch, not a write; go run it.
 - Track `isolation` (worktree or current-branch) and `branch` name
 
-The dashboard polls `manifest.json` every 2 seconds. If you skip manifest updates, the dashboard shows stale data and the user loses visibility into what's happening.
+The `agents` object uses these keys verbatim — the dashboard reads them as written, so a
+near-miss renders no dot: `coder` · `tester` · `reviewer` · `security` · `rubber_duck` · `lead`.
+
+The dashboard polls `manifest.json` every 2 seconds, so a write is only visible if it happens
+while the pipeline is still moving. Write at **every** agent transition — one write per
+verdict — not at task boundaries: run a whole task between two writes and the board shows
+queue → done with no agent movement, which is indistinguishable from nothing having happened.
 
 ## Max Retry Policy
 

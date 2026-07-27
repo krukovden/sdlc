@@ -299,3 +299,48 @@ describe('design phase', () => {
     assert.match(content, /real trade-off/i);
   });
 });
+
+// ---------------------------------------------------------------------------
+// The kanban showed tasks jumping queue → done with no agent movement, and
+// Security / Rubber Duck effectively never ran. Both are the same shape of
+// defect: guidance that lived far from the loop the Lead actually follows.
+// ---------------------------------------------------------------------------
+
+describe('implement dispatch loop', () => {
+  const LEAD = '.sdlc/agents/sdlc-lead.md';
+
+  it('brackets every dispatch with a manifest write, in the loop itself', () => {
+    // Stating this only in a Manifest Update section at the far end of the file is how it
+    // got skipped: the Lead follows the loop, so the write has to be a step of the loop.
+    const loop = readSource(IMPLEMENT).split('**The dispatch loop')[1].split('\n## ')[0];
+    assert.match(loop, /Write the manifest/);
+    assert.match(loop, /`active`/);
+    assert.match(loop, /next agent in the\s+sequence → `active`/);
+  });
+
+  it('gates the compliance check on all six agents reaching a terminal state', () => {
+    // The tail of the sequence is where agents get dropped; this is the check that catches it.
+    const loop = readSource(IMPLEMENT).split('**The dispatch loop')[1].split('\n## ')[0];
+    assert.match(loop, /terminal\s+state/);
+    assert.match(loop, /still at\s+`pending` is one you dropped/);
+  });
+
+  it('forbids bulk-closing the remaining agents at task end', () => {
+    // Setting "all remaining agents" to passed backdates verdicts nobody rendered and marks
+    // agents that never ran as having passed — the exact source of the queue → done jump.
+    assert.match(readSource(LEAD), /never bulk-close the remainder/i);
+    assert.match(readSource(IMPLEMENT), /Never bulk-close agents at the end of a task/i);
+  });
+
+  it('mediated mode dispatches the Rubber Duck too', () => {
+    // The mediated sequence used to stop at Security, so an enabled Duck never ran there.
+    const mediated = readSource(IMPLEMENT).split('### Mediated mode')[1].split('\n### ')[0];
+    assert.match(mediated, /dispatch Rubber Duck if enabled/);
+  });
+
+  it('names the only grounds on which Security may be skipped', () => {
+    const content = readSource(IMPLEMENT);
+    assert.match(content, /That is the only ground for skipping/i);
+    assert.match(content, /Every skip is recorded twice/i);
+  });
+});

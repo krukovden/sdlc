@@ -64,7 +64,8 @@ Avoid scope creep. If the investigation reveals broader issues, recommend a foll
 
 ## Agent Activation
 
-All five agents are activated for every implementation task.
+All five core agents are activated for every implementation task. The Rubber Duck runs in
+addition on the tasks the Plan phase enabled it for.
 
 | Agent | Activation | Role |
 |-------|------------|------|
@@ -73,11 +74,12 @@ All five agents are activated for every implementation task.
 | **Tester** | Always | Writes regression tests per regression test plan |
 | **Reviewer** | Always | Reviews fix quality against standard verifications |
 | **Security** | Always | Scans fix for security issues (bugs can mask vulnerabilities) |
+| **Rubber Duck** | When the plan enabled it for the task | Second opinion on a different model — hunts the missing branch and the wrong-but-green test |
 
 ### Agent Pipeline Per Task
 
 ```
-Lead (dispatch) -> Coder -> Tester -> Reviewer -> Security -> Lead (compliance) -> Commit
+Lead (dispatch) -> Coder -> Tester -> Reviewer -> Security -> [Rubber Duck] -> Lead (compliance) -> Commit
 ```
 
 Each agent-to-agent handoff has a retry loop (max 3 cycles). If an agent fails, Coder fixes and the failing agent re-evaluates.

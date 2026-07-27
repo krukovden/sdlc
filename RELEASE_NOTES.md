@@ -4,6 +4,20 @@
 
 ## 2026-07-27
 
+### The Board Moves Again, and the Tail of the Pipeline Runs
+
+Two defects with the same shape: the rule was written somewhere the Lead does not look while the pipeline is in flight.
+
+**The kanban jumped queue → done.** The per-transition manifest rule lived in a *Manifest Update* section at the far end of `implement.md`, while the loop the Lead actually follows said only "parse → check → dispatch next". The manifest write is now a numbered step of that loop, on both sides of every dispatch. `sdlc-lead.md` no longer says to "set all remaining agent statuses to `passed`" when a task completes — that one instruction backdated verdicts nobody rendered and marked agents that never ran as passed, which is the queue → done jump itself. Each status is written when it is earned, or it is `skipped` with a reason.
+
+**Security and the Rubber Duck were falling off the end.** They sit at the tail of the sequence, which is where a dropped agent is cheapest to not notice.
+
+- The mediated-mode sequence stopped at Security — an enabled Rubber Duck was never dispatched there at all
+- The dispatch loop now gates the compliance check on all six agents holding a terminal status (`passed`/`failed`/`skipped`); an agent still `pending` means a dispatch was skipped, not a write
+- Skip conditions are narrowed to the one stated ground — a task of pure declarations — with "small", "low-risk", "already covered", and "taking too long" named as non-reasons. Every skip is recorded twice: `skipped` in the manifest and a reason in `04-implementation-log.md`
+- The Lead's Rubber Duck model table named versioned ids (`claude-opus-4-7`). A retired version string is rejected by the dispatch tool's `model` parameter, the dispatch fails, and the Duck silently never runs. It now reads the tiers the tool offers at call time and passes a tier alias — and when the tool exposes no `model` parameter it dispatches anyway, with the Duck disclosing the same-model run in its verdict
+- The workflow definitions (`feature`, `bugfix`, `refactor`) show the Rubber Duck in the pipeline diagram and the activation table, instead of ending at Security
+
 ### Lead is the Sole Dispatcher — Autonomous Pipeline No Longer Stalls
 
 Agents no longer spawn their successors. The Lead dispatches every agent in the sequence itself, in autonomous mode as well as mediated.

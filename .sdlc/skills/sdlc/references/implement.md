@@ -61,15 +61,30 @@ For each task in `03-plan.md`, dispatch agents in this order:
 | Bugfix | Coder → Tester → Reviewer → Security → Rubber Duck (if enabled) → Lead (compliance check) |
 | Refactor | Coder → Tester → Reviewer → Security (if activated) → Rubber Duck (if enabled) → Lead (compliance check) |
 
+**Security and the Rubber Duck sit at the tail, and the tail is where agents get dropped.**
+You dispatch them yourself, as ordered steps in the sequence above — Security on every
+Feature and Bugfix task, and on a Refactor task per the activation rule in `sdlc-lead.md`;
+the Rubber Duck on every task the plan marked `rubber_duck.enabled: true`. Neither is
+something an upstream agent hands off, and neither is optional because the pipeline has
+already been running a while. A task is not done until both carry a terminal status.
+
 **The sequence is the default, not a mandate. Tester and Security may be skipped for a task
 whose nature makes them vacuous — with a recorded reason.** A task that is pure type or
 constant **declarations** has no runtime behaviour to test (writing tests over interface
 declarations violates the project's own YAGNI guideline) and no trust boundary to review (a
-security pass over an interface file is empty). Skip on this basis only, and record it: a
-skipped role renders as `skipped` in the manifest, never omitted — the same principle the
-Rubber Duck already follows (see the Manifest section). The recorded reason belongs in
-`04-implementation-log.md`. When in doubt — any input handling, any I/O, any trust boundary,
-any runtime branch — run the full sequence.
+security pass over an interface file is empty). **That is the only ground for skipping
+either.** These are not: the task is small, the diff is short, the change looks low-risk, an
+earlier task already passed Security, the retry budget is spent, or the pipeline is taking
+too long. When in doubt — any input handling, any I/O, any trust boundary, any runtime
+branch — run the full sequence.
+
+The Rubber Duck is skipped on exactly one ground: the plan disabled it for this task. A duck
+the plan enabled always runs.
+
+**Every skip is recorded twice or it did not happen**: `skipped` on that agent in the
+manifest — never omitted, never `passed` — and the reason in `04-implementation-log.md`.
+Silently dropping a role is the failure mode this rule exists to prevent; a skip nobody can
+read afterwards is indistinguishable from one.
 
 ## Task Execution Mode
 
@@ -101,6 +116,11 @@ between agents:
 
 Coder → Tester → Reviewer → Security → Rubber Duck (if enabled) → compliance check → commit.
 
+"No stop-gate" is about the **user**, not the manifest. You still write the manifest on both
+sides of every dispatch (see the dispatch loop below, and Manifest Update). Running the whole
+pipeline between two writes is precisely what makes the board jump queue → done with nothing
+in between.
+
 Retries are yours as well (see Retry Logic): an agent reporting a failure returns it to you,
 and you dispatch the Coder fix and re-dispatch that agent.
 
@@ -112,7 +132,8 @@ the plan marks — the behaviour is unchanged.
 
 Specifically: dispatch Coder → check result → dispatch Tester → check result → retry if needed
 → dispatch Reviewer → check result → retry if needed → dispatch Security → check result →
-retry if needed → compliance check → commit.
+retry if needed → dispatch Rubber Duck if enabled → check result → retry if needed →
+compliance check → commit.
 
 ### Opt-in: let the Coder drive the whole chain
 
@@ -183,15 +204,28 @@ orchestrator cannot dispatch the Tester until your context arrives, and a silent
 indistinguishable from a crash.
 ```
 
-**After each agent returns:**
+**The dispatch loop — one iteration per agent, a manifest write on each side of it:**
 
-1. Parse the pipeline context from the agent's response
-2. Check the agent's status:
-   - `FAILED` — run the retry loop below; on exhausted retries this is a task failure (update manifest, present Failed Task Stop-Gate)
-   - otherwise — dispatch the next agent in the sequence with the updated context
-3. When the last agent has passed, run the Lead compliance check against design artifacts
-4. If compliant, commit. If deviation found, handle per existing deviation logic.
-5. Update `04-implementation-log.md` with results from the pipeline context
+1. **Write the manifest**: task `status` → `active`, task `current_agent` → this agent, this
+   agent's `status` → `active`
+2. Dispatch the agent
+3. Parse the pipeline context from its response
+4. **Write the manifest again**: this agent → `passed` or `failed`, and the next agent in the
+   sequence → `active` with `current_agent` pointing at it. One write per verdict — this is
+   the write the dashboard renders as movement (see Manifest Update)
+5. Act on the verdict:
+   - `FAILED` — run the retry loop below. Each retry cycle is its own pair of writes: the
+     agent back to `active` for the re-dispatch, then its new verdict. On exhausted retries
+     this is a task failure (write it, present the Failed Task Stop-Gate)
+   - otherwise — continue the loop with the next agent in the sequence
+6. **Before the compliance check, verify every agent key except `lead` is in a terminal
+   state** — `passed`, `failed`, or `skipped` with a recorded reason. An agent still at
+   `pending` is one you dropped: dispatch it now. This check is what keeps Security and the
+   Rubber Duck, which sit at the tail, from falling off the end of the sequence.
+7. Run the Lead compliance check against design artifacts (`lead` → `active`, then its verdict)
+8. If compliant, commit. If deviation found, handle per existing deviation logic.
+9. Set task `status` to `done` and record the `commit` hash, then update
+   `04-implementation-log.md` with results from the pipeline context
 
 **If an agent returns a context but no verdict**, or returns a note that it could not dispatch
 the next agent, treat it as a completed step and carry on from where it stopped. That note is
@@ -330,7 +364,7 @@ Update `04-implementation-log.md` after each task. This log is the data source f
 - **Tester**: {test results — X tests, all passing}
 - **Reviewer**: PASS
 - **Security**: PASS
-- **Rubber Duck**: PASS (claude-opus-4-7) — {brief summary} | disabled
+- **Rubber Duck**: PASS ({model it ran on}) — {brief summary} | skipped — disabled at plan
 - **Compliance**: COMPLIANT
 - **Retries**: {0 or N — which agent, what was fixed}
 - **Commit**: {commit hash} — {commit message}
@@ -616,8 +650,8 @@ You can:
 - Set implement phase status to `in_progress` when starting
 - Set to `approved` with `completed_at` after all tasks complete
 - **Before dispatching an agent**: Update the task's `status` to `active`, set `current_agent` to the agent name, set agent's status to `active`
-- **After agent completes**: Update agent's status to `passed` or `failed`, clear `current_agent` (or set to next agent)
-- **After all agents pass**: Set task `status` to `done`, record `commit` hash
+- **After agent completes**: Update agent's status to `passed` or `failed`, and set `current_agent` to the next agent in the sequence (only the last one clears it)
+- **After all agents reach a terminal status**: Set task `status` to `done`, record `commit` hash
 - These updates keep `manifest.json` in sync with the dashboard and console progress table
 
 Write the manifest at **every** agent transition, not only at task boundaries. The dashboard
@@ -628,6 +662,16 @@ write per verdict (Coder passed → Tester active → Tester passed → …) is 
 Active column show real work. A closed agent must be *closed*: never leave a `rubber_duck`
 (or any agent) at `active` after it returns — advance it to `passed`/`failed`/`skipped`, or
 the dashboard shows a finished task with an agent still spinning.
+
+Two rules make this checkable rather than aspirational:
+
+- **No agent goes from `pending` straight to a closed task.** If you are about to set a task
+  `done` and any agent is still `pending`, you skipped a dispatch — not a write. Go back and
+  run it (step 6 of the dispatch loop).
+- **Never bulk-close agents at the end of a task.** Setting "all remaining agents" to
+  `passed` in one write is what produces a card that jumps queue → done: it backdates
+  verdicts that were never rendered, and it marks as `passed` agents that never ran. Each
+  status is written when it is earned, or it is `skipped` with a reason.
 
 ### Agent keys in the manifest
 
