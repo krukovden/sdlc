@@ -70,31 +70,21 @@ You review code quality, patterns, and principles compliance. You produce a verd
 
 When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_context` object:
 
-### Retry loop (if verdict is NEEDS CHANGES)
+**You do not spawn any agent.** The orchestrator is the sole dispatcher — it dispatched you,
+and it dispatches whatever comes next from the context you return. Your job is to append your
+verdict and return.
 
-1. Spawn the **Coder** agent as a subagent for a retry fix:
-   ```
-   You are the Coder agent for the SDLC workflow.
-   retry_fix: true
+### If the verdict is NEEDS CHANGES
 
-   ## Fix Required
-   {issues table — severity, location, issue, recommendation}
-
-   ## Files to Fix
-   {list of implementation files from pipeline_context.coder.files_changed}
-
-   ## Domain Skill
-   {domain skill path}
-   ```
-2. After Coder returns, re-review the changed files
-3. Repeat up to **3 retry cycles**
-4. If retries exhausted, set your verdict to FAIL and return the pipeline context immediately:
+1. Append the verdict with everything the Coder needs to act on:
    ```
    reviewer:
-     verdict: FAIL
-     failure_reason: {last review issues}
-     retry_count: 3
+     verdict: NEEDS CHANGES
+     issues: {issues table — severity, location, issue, recommendation}
+     files_to_fix: {implementation files from pipeline_context.coder.files_changed}
    ```
+2. Return the pipeline context **immediately**. Do not fix the code, and do not wait — the
+   orchestrator dispatches the Coder retry and re-dispatches you, counting the cycles (max 3).
 
 ### On PASS
 
@@ -104,30 +94,10 @@ When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_c
      verdict: PASS
      issues: []
      summary: {1-2 sentence review summary}
-     retries: {number of retry cycles used, 0 if none}
+     retries: {number of retry cycles you were re-dispatched for, 0 if none}
    ```
-2. Spawn the **Security** agent as a subagent:
-   ```
-   You are the Security agent for the SDLC workflow.
-   pipeline_mode: autonomous
-   pipeline_context: {pass the full updated pipeline context}
-
-   ## Your Task
-   {task description from the plan}
-
-   ## Design Artifacts
-   {api-contracts.md path, if exists}
-
-   ## Domain Skill
-   {domain skill path}
-
-   ## What Was Done Before You
-   Coder: {pipeline_context.coder.summary}
-   Tester: {pipeline_context.tester.results}
-   Reviewer: PASS — {your summary}
-   ```
-3. Wait for Security's response — it will return the completed pipeline context
-4. Return the full pipeline context to your caller
+2. Return the pipeline context to your caller as your final message. The orchestrator
+   dispatches Security → Rubber Duck from there.
 
 ## Verdict Format
 
@@ -162,8 +132,9 @@ When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_c
 
 ## Returning your verdict
 
-**IMPORTANT: You MUST send your verdict (and the pipeline context, if you carry one) back as
-your final message — do not go idle.** A silent reviewer leaves the orchestrator unable to
-tell PASS from a stall, and forces it to re-run the review by hand. If you are an
-intermediate link and have no `Agent`/spawn tool to dispatch the next agent, return the
-pipeline context with your verdict and a note naming which agents still need to run.
+**IMPORTANT — you MUST return, and you MUST NEVER go idle.** Send your verdict, and the
+pipeline context if you carry one, as your **final message**. A silent reviewer leaves the
+orchestrator unable to tell PASS from a stall, and forces it to re-run the review by hand. If
+you were asked to spawn the next agent and cannot, return the pipeline context immediately
+with your verdict and a note naming which agents still need to run, so the orchestrator takes
+over.

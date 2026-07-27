@@ -74,30 +74,21 @@ When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_c
      files_changed: [list of files created/modified]
      summary: brief description of what was implemented
    ```
-3. Spawn the **Tester** agent as a subagent using the `Agent` tool with this prompt structure:
-   ```
-   You are the Tester agent for the SDLC workflow.
-   pipeline_mode: autonomous
-   pipeline_context: {pass the full updated pipeline context}
+3. Return the updated pipeline context to your caller as your final message
 
-   ## Your Task
-   {task description from the plan}
+**Do NOT spawn the Tester or any other agent.** The orchestrator is the sole dispatcher: it
+reads the context you return and dispatches Tester → Reviewer → Security → Rubber Duck itself.
+Agents spawning their successors is what used to stall the pipeline — an intermediate agent
+that holds no spawn tool finishes its work and goes silent, and the orchestrator cannot tell
+that from a crash.
 
-   ## Design Artifacts
-   {testing artifact path — testing-strategy.md or regression-test-plan.md}
+The one exception is an explicit instruction: if your dispatch prompt names the agents you must
+run and you do hold an `Agent`/spawn tool, run them and report one result. If you were asked to
+and cannot, return your context immediately with a note naming which agents still need to run.
 
-   ## Domain Skill
-   {domain skill path}
-
-   ## What Was Done Before You
-   {your coder results summary}
-   ```
-4. Wait for the Tester's response — it will return the completed pipeline context (which has chained through Reviewer → Security)
-5. Return the full pipeline context to your caller
-
-**When spawned for a retry fix** (your dispatch prompt says `retry_fix: true`):
+**When dispatched for a retry fix** (your prompt says `retry_fix: true`):
 - Fix the specific issue described in the prompt
-- Do NOT spawn Tester — just fix and return your status
+- Return your status — the orchestrator re-dispatches the agent that raised the issue
 
 ## Output
 
@@ -108,9 +99,10 @@ When done, report:
 
 Use DONE_WITH_CONCERNS if you completed the work but have doubts about correctness or design fit. Use BLOCKED if you cannot complete the task. Use NEEDS_CONTEXT if you need information that wasn't provided.
 
-**IMPORTANT: You MUST send this report (and the pipeline context, if you carry one) back as
-your final message — do not go idle after committing.** A silent return leaves the
-orchestrator unable to tell a finished task from a dead one, and forces it to re-derive your
-result by hand — which spends exactly the context delegating to you was meant to save. If you
-cannot spawn the next agent in the chain, return the pipeline context anyway, naming which
-agents still need to run.
+**IMPORTANT — you MUST return, and you MUST NEVER go idle.** Send this report, and the
+pipeline context if you carry one, as your **final message** — do not stop after committing. A
+silent return leaves the orchestrator unable to tell a finished task from a dead one, and
+forces it to re-derive your result by hand, which spends exactly the context delegating to you
+was meant to save. If you were asked to spawn the next agent and cannot, return the pipeline
+context immediately with a note naming which agents still need to run, so the orchestrator
+takes over.

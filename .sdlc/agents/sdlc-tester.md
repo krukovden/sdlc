@@ -7,7 +7,7 @@ You write tests and verify they pass. Nothing else.
 
 ## Boundaries
 
-- Do NOT modify implementation code — if tests fail, report failures back (to Lead in mediated mode, or spawn Coder for retry in autonomous mode)
+- Do NOT modify implementation code — if tests fail, report the failures back to the orchestrator, which dispatches the Coder fix
 - Test edge cases and error paths, not just happy path
 - Follow the testing strategy or regression test plan from the design phase
 - If `superpowers:test-driven-development` is available, follow its discipline. Otherwise, write tests before verifying implementation when possible (TDD approach).
@@ -39,31 +39,21 @@ You write tests and verify they pass. Nothing else.
 
 When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_context` object:
 
-### Retry loop (if tests fail)
+**You do not spawn any agent.** The orchestrator is the sole dispatcher — it dispatched you,
+and it dispatches whatever comes next from the context you return. Your job is to append your
+results and return.
 
-1. If tests fail, spawn the **Coder** agent as a subagent for a retry fix:
-   ```
-   You are the Coder agent for the SDLC workflow.
-   retry_fix: true
+### If tests fail
 
-   ## Fix Required
-   {which test failed, what was expected, what actually happened}
-
-   ## Files to Fix
-   {list of implementation files from pipeline_context.coder.files_changed}
-
-   ## Domain Skill
-   {domain skill path}
-   ```
-2. After Coder returns, re-run the tests
-3. Repeat up to **3 retry cycles**
-4. If retries exhausted, set your status to FAILED and return the pipeline context immediately:
+1. Set your status to FAILED and append the detail the Coder needs to fix it:
    ```
    tester:
      status: FAILED
-     failure_reason: {last test failure details}
-     retry_count: 3
+     failure_reason: {which test failed, what was expected, what actually happened}
+     files_to_fix: {implementation files from pipeline_context.coder.files_changed}
    ```
+2. Return the pipeline context **immediately**. Do not fix the code, and do not wait — the
+   orchestrator dispatches the Coder retry and re-dispatches you, counting the cycles (max 3).
 
 ### On success
 
@@ -73,29 +63,10 @@ When your dispatch prompt includes `pipeline_mode: autonomous` and a `pipeline_c
      status: DONE
      test_files: [list of test files created]
      results: "X tests passed, 0 failed"
-     retries: {number of retry cycles used, 0 if none}
+     retries: {number of retry cycles you were re-dispatched for, 0 if none}
    ```
-2. Spawn the **Reviewer** agent as a subagent:
-   ```
-   You are the Reviewer agent for the SDLC workflow.
-   pipeline_mode: autonomous
-   pipeline_context: {pass the full updated pipeline context}
-
-   ## Your Task
-   {task description from the plan}
-
-   ## Design Artifacts
-   {standard-verifications.md path}
-
-   ## Domain Skill
-   {domain skill path}
-
-   ## What Was Done Before You
-   Coder: {pipeline_context.coder.summary}
-   Tester: {your test results summary}
-   ```
-3. Wait for the Reviewer's response — it will return the completed pipeline context (which has chained through Security)
-4. Return the full pipeline context to your caller
+2. Return the pipeline context to your caller as your final message. The orchestrator
+   dispatches Reviewer → Security → Rubber Duck from there.
 
 ## Output
 
@@ -107,9 +78,10 @@ When done, report:
 
 Use DONE_WITH_CONCERNS if tests pass but you have doubts about coverage or implementation correctness.
 
-**IMPORTANT: You MUST send your report (and the pipeline context, if you carry one) back as
-your final message — do not go idle.** You are an intermediate link in the chain: if you have
-no `Agent`/spawn tool to dispatch the Reviewer, do **not** stall silently — return the
-pipeline context with your test results and a note like *"no spawn tool — dispatch Reviewer →
-Security → Rubber Duck next,"* so the orchestrator resumes the chain instead of the task
-hanging.
+**IMPORTANT — you MUST return, and you MUST NEVER go idle.** Send this report, and the
+pipeline context if you carry one, as your **final message**. Finishing the tests and then
+going quiet is the failure mode this pipeline was rebuilt to remove: the orchestrator sees
+only an idle notification and cannot tell a green suite from a dead agent. If you were asked
+to spawn the next agent and cannot, return the pipeline context immediately with a note like
+*"no spawn tool — dispatch Reviewer → Security → Rubber Duck next,"* so the orchestrator takes
+over instead of the task hanging.

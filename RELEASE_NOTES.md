@@ -2,6 +2,22 @@
 
 ---
 
+## 2026-07-27
+
+### Lead is the Sole Dispatcher — Autonomous Pipeline No Longer Stalls
+
+Agents no longer spawn their successors. The Lead dispatches every agent in the sequence itself, in autonomous mode as well as mediated.
+
+The old chaining (Coder spawns Tester, Tester spawns Reviewer, …) needed a spawn tool *inside* each dispatched agent. Most harnesses give the top-level Coder one and give a dispatched Tester or Reviewer none — so the chain ran Coder → Tester and stopped there, the Tester holding a finished result it had no way to forward. The Lead saw only an idle notification and could not tell *done* from *stalled*. In practice that showed up as an 18-minute hang on a task whose work was already complete.
+
+- **Autonomous mode** now means the Lead dispatches straight through with no deliberation and no stop-gate between agents — not that the agents chain themselves
+- **Mediated mode** is unchanged: the Lead reads each output in full and may adjust course between handoffs
+- **Retries are Lead-driven in both modes.** An agent that fails returns its findings and the files to fix; the Lead dispatches the Coder and re-dispatches it. Each agent keeps its budget of 3 cycles — the Lead is the one counting
+- **Every agent definition now carries the same non-negotiable:** return your result as your final message, never go idle, and if you were asked to spawn a successor and cannot, return immediately with a note naming which agents still need to run
+- Letting the Coder drive the whole chain survives as an opt-in per task, for harnesses where that has been verified to work
+
+---
+
 ## 2026-05-06
 
 ### Rubber Duck — Cross-Model Second Opinion

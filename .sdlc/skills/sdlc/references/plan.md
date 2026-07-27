@@ -127,8 +127,10 @@ A single workflow may span multiple domains (e.g., "Angular frontend + Node API"
 
 Each task must be assigned an execution mode:
 
-- **`autonomous`** (default) — agents chain directly (Coder → Tester → Reviewer → Security) without Lead mediating each handoff. Lead dispatches once and reviews the final result.
-- **`mediated`** — Lead mediates every agent handoff (current behavior). Use for high-risk tasks.
+- **`autonomous`** (default) — Lead dispatches the sequence (Coder → Tester → Reviewer → Security) straight through, reading each result only far enough to decide pass / retry / next. No deliberation and no stop-gate between agents.
+- **`mediated`** — Lead reads each agent's output in full, builds the next prompt from it, and may adjust course between handoffs. Use for high-risk tasks.
+
+Lead is the sole dispatcher in both modes — agents never spawn one another (see `references/implement.md` → Task Execution Mode).
 
 ### Risk criteria for `mediated`
 

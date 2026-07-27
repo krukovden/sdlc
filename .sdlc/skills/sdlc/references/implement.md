@@ -33,7 +33,7 @@ When Agent Teams is available, create a team and spawn teammates for **independe
 2. Create an agent team with the Lead as coordinator
 3. For independent tasks: spawn teammates in parallel, each using the appropriate agent type (`sdlc-coder`, `sdlc-tester`, etc.)
 4. For dependent tasks: wait for dependencies to complete, then spawn
-5. Each teammate follows the full pipeline: Coder → Tester → Reviewer → Security → Rubber Duck (if enabled)
+5. Each teammate is the sole dispatcher for its own task, calling the full pipeline itself: Coder → Tester → Reviewer → Security → Rubber Duck (if enabled)
 6. Teammates report results via the shared task list
 7. Lead performs compliance check after each task completes
 
@@ -43,7 +43,7 @@ When Copilot Fleet is available, dispatch independent tasks in parallel via flee
 
 1. Read `03-plan.md` and identify independent tasks
 2. Dispatch independent tasks simultaneously via `gh copilot fleet`
-3. Each fleet worker runs the full pipeline: Coder → Tester → Reviewer → Security → Rubber Duck (if enabled)
+3. Each fleet worker is the sole dispatcher for its own task, calling the full pipeline itself: Coder → Tester → Reviewer → Security → Rubber Duck (if enabled)
 4. Dependent tasks wait for their dependencies before dispatching
 5. Lead performs compliance check after each task completes
 
@@ -73,36 +73,66 @@ any runtime branch — run the full sequence.
 
 ## Task Execution Mode
 
-Before dispatching each task, check its `mode` field from `03-plan.md`:
+Before dispatching each task, check its `mode` field from `03-plan.md`. **In both modes the
+orchestrator is the sole dispatcher**: it calls Coder, then Tester, then Reviewer, then
+Security, then the Rubber Duck if enabled, and every one of them returns to it. Agents do not
+spawn their successors. The two modes differ only in how much the orchestrator interposes
+between the handoffs.
+
+### Why agents no longer chain
+
+Chaining used to be each agent spawning the next as a subagent, which needs an `Agent`/spawn
+tool *inside* the dispatched agent. Many harnesses give the **top-level Coder** a spawn tool
+but give a **dispatched Tester or Reviewer** none — so the chain ran Coder → Tester and then
+stopped, the Tester holding a finished result it had no way to forward. The orchestrator saw
+only an `idle_notification` and could not tell *done* from *stalled*; observed in practice as
+an 18-minute hang on a task whose work was already complete. The middle link is the one that
+breaks, and it breaks silently.
+
+Dispatching every agent yourself costs one round-trip per agent and cannot stall in that way.
+That trade is not close. Agent-driven chaining survives only as the opt-in variant below, and
+only where you have verified it works.
 
 ### Autonomous mode (`mode: autonomous`)
 
-Dispatch the Coder agent **once** with the full autonomous pipeline instruction. The Coder will chain through Tester → Reviewer → Security and return the completed pipeline context.
+Dispatch the sequence straight through. Read each returned `pipeline_context` only far enough
+to decide pass / retry / next, then dispatch the next agent — no deliberation, no stop-gate
+between agents:
 
-**Autonomous mode only works when the dispatched agents can actually spawn their
-successors — verify that before relying on it.** Chaining is done by each agent spawning the
-next as a subagent, which needs an `Agent`/spawn tool *inside* the dispatched agent. Many
-harnesses give the **top-level Coder** a spawn tool but give a **dispatched Tester or
-Reviewer** none — so the chain runs Coder → Tester and then stalls, because the Tester has no
-way to spawn the Reviewer. The middle link is the one that breaks. Two patterns are safe;
-the middle ground is not:
+Coder → Tester → Reviewer → Security → Rubber Duck (if enabled) → compliance check → commit.
 
-- **(a) Orchestrator is the sole dispatcher (simplest, preferred fallback).** If the
-  intermediate agents lack a spawn tool, do not use autonomous chaining — dispatch every
-  agent yourself in sequence, exactly as mediated mode does. This is what the harness
-  collapses to anyway; naming it up front stops the phase reference from promising a saving
-  that is not there.
-- **(b) The Coder alone drives the whole chain.** Only if the Coder holds a spawn tool and
-  the intermediate agents are *not* expected to spawn anyone — the Coder runs Tester →
-  Reviewer → Security → Rubber Duck itself and reports one PASS.
+Retries are yours as well (see Retry Logic): an agent reporting a failure returns it to you,
+and you dispatch the Coder fix and re-dispatch that agent.
 
-**Whichever pattern, every dispatched agent MUST return a well-formed `pipeline_context`
-(and MUST NOT go idle).** That is what lets the orchestrator take over the moment a link
-stalls: a Tester that cannot spawn the Reviewer returns its `pipeline_context` with a note
-like *"no spawn tool — dispatch Reviewer → Security → Rubber Duck next,"* and the
-orchestrator resumes from there instead of the task hanging.
+### Mediated mode (`mode: mediated`)
 
-**Dispatch prompt for autonomous mode:**
+The same dispatch sequence, but you read each agent's output in full, construct the next
+agent's prompt from it, and may adjust course between handoffs. Use for the high-risk tasks
+the plan marks — the behaviour is unchanged.
+
+Specifically: dispatch Coder → check result → dispatch Tester → check result → retry if needed
+→ dispatch Reviewer → check result → retry if needed → dispatch Security → check result →
+retry if needed → compliance check → commit.
+
+### Opt-in: let the Coder drive the whole chain
+
+Only when you have **verified** that a dispatched Coder holds a spawn tool, and you name in
+its prompt exactly which agents it must run, may you dispatch the Coder once and have it run
+Tester → Reviewer → Security → Rubber Duck itself and report one result. This saves
+round-trips on a long pipeline. It is opt-in per task, never the default, and the intermediate
+agents are still not expected to spawn anyone.
+
+### Whatever the mode: every agent returns, no agent goes idle
+
+Every dispatched agent MUST end by sending its result — its verdict and, if it carries one, a
+well-formed `pipeline_context` — as its **final message**. An agent that finishes its work and
+goes idle is indistinguishable from one that died, and leaves the orchestrator with nothing to
+gate on. If an agent was asked to spawn a successor and cannot, it returns its context
+immediately with a note naming which agents still need to run, and the orchestrator resumes
+from there. Carry that instruction in every dispatch prompt you write (see the Agent Dispatch
+Template below) — do not rely on the agent definition to supply it.
+
+**Dispatch prompt for the Coder (autonomous mode):**
 
 ```
 You are the Coder agent for the SDLC workflow.
@@ -143,36 +173,38 @@ Read: .sdlc/skills/{domain-skill}/SKILL.md
 ## Instructions
 1. Implement the task
 2. Append your results to the pipeline context
-3. Spawn the Tester agent as a subagent, passing the pipeline context and all artifact paths above
-4. The Tester will chain through Reviewer → Security
-5. Return the completed pipeline context
+3. Return the updated pipeline context as your final message
 
-IMPORTANT: You MUST return the pipeline context as your final message — do not go idle. If
-you cannot spawn the next agent (no Agent/spawn tool available), return the pipeline context
-anyway with a note naming which agents still need to run, so the orchestrator can take over.
+Do NOT spawn the Tester or any other agent — the orchestrator dispatches the rest of the
+sequence itself, using the context you return.
+
+IMPORTANT: You MUST return the pipeline context as your final message — do not go idle. The
+orchestrator cannot dispatch the Tester until your context arrives, and a silent finish is
+indistinguishable from a crash.
 ```
 
-**After the pipeline returns:**
+**After each agent returns:**
 
-1. Parse the pipeline context from the Coder's response
-2. Check if any agent has status `FAILED`:
-   - If yes, this is a pipeline failure — handle as a failed task (update manifest, present Failed Task Stop-Gate)
-3. If all agents passed, run the Lead compliance check against design artifacts
+1. Parse the pipeline context from the agent's response
+2. Check the agent's status:
+   - `FAILED` — run the retry loop below; on exhausted retries this is a task failure (update manifest, present Failed Task Stop-Gate)
+   - otherwise — dispatch the next agent in the sequence with the updated context
+3. When the last agent has passed, run the Lead compliance check against design artifacts
 4. If compliant, commit. If deviation found, handle per existing deviation logic.
 5. Update `04-implementation-log.md` with results from the pipeline context
 
-### Mediated mode (`mode: mediated`)
-
-Follow the existing dispatch pattern — Lead dispatches each agent individually and mediates every handoff. This is the current behavior, unchanged.
-
-Specifically: dispatch Coder → check result → dispatch Tester → check result → retry if needed → dispatch Reviewer → check result → retry if needed → dispatch Security → check result → retry if needed → compliance check → commit.
+**If an agent returns a context but no verdict**, or returns a note that it could not dispatch
+the next agent, treat it as a completed step and carry on from where it stopped. That note is
+the recovery path working as intended — not an error.
 
 ## Agent Context Isolation
 
 Each agent receives **only** what it needs. Construct precise prompts — regardless of dispatch mode.
 
-In **mediated mode**, Lead constructs each agent's prompt individually using the sections below.
-In **autonomous mode**, Lead constructs only the Coder's initial prompt (using the autonomous dispatch template above). Subsequent agents receive context via the pipeline context object passed through the chain.
+Lead constructs every agent's prompt in both modes, using the sections below. The difference is
+how: in **mediated mode** Lead composes each prompt from the prior agent's output as it reads
+it; in **autonomous mode** Lead fills the prompt mechanically from the returned pipeline
+context and dispatches without pausing.
 
 ### Coder receives:
 - Single task from `03-plan.md` (not the full plan)
@@ -203,7 +235,9 @@ In **autonomous mode**, Lead constructs only the Coder's initial prompt (using t
 
 When dispatching each agent, construct a prompt that includes:
 
-**Note:** This template applies to **mediated mode** dispatch. For **autonomous mode**, use the autonomous dispatch template in the "Task Execution Mode" section above.
+**Note:** This template applies to every agent you dispatch, in both modes. For the Coder's
+first dispatch in autonomous mode, use the Coder template in the "Task Execution Mode" section
+above — it carries the pipeline context object as well.
 
 ```
 You are the {Agent} agent for the SDLC workflow.
@@ -242,7 +276,10 @@ See `sdlc-lead.md` Skill Resolution section for how to identify supplementary sk
 
 If an agent reports issues:
 
-**Note:** This retry logic applies to **mediated mode** only. In **autonomous mode**, each agent handles its own retry loop with Coder (max 3 cycles per agent). Lead only sees the final result.
+**Note:** This retry logic applies to **both modes** — the orchestrator owns the loop in each,
+because the reviewing agents do not spawn the Coder either. Autonomous mode differs only in
+that Lead runs the loop without pausing between cycles. Each agent still carries its own budget
+of 3 cycles; Lead is the one counting them.
 
 ### Tester reports test failures:
 1. Dispatch Coder with the failure details and ask to fix

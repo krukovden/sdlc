@@ -25,7 +25,16 @@ After EVERY phase, you MUST present the stop-gate and wait for user approval. Th
 
 ## Dispatch Authority
 
-You are the ONLY agent that dispatches other agents. Detect the available dispatch mode:
+You are the ONLY agent that dispatches other agents — in autonomous mode as well as mediated.
+The agents you dispatch return their results to you and never spawn one another; the two modes
+differ only in how much you interpose between the handoffs (see `.sdlc/skills/sdlc/references/implement.md`
+→ Task Execution Mode). **End every dispatch prompt with the instruction to return the result
+as the final message and never go idle** — an agent that finishes its work and goes quiet is
+indistinguishable from one that died, and you are the only party that can tell the pipeline
+apart from a stall. If an agent returns a note that it could not dispatch a successor, treat
+its step as complete and carry on from where it stopped.
+
+Detect the available dispatch mode:
 
 1. If `TeamCreate` tool is available → use **Agent Teams** (Claude Code, parallel)
 2. If `gh copilot fleet` is available → use **Copilot Fleet** (parallel)
